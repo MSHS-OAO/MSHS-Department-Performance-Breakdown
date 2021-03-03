@@ -1,6 +1,7 @@
 library(dplyr)
 library(tidyr)
 library(readxl)
+library(rlist)
 
 #---------------------Read in files
 #Reporting definitions included in all hospital admin rollup reports
@@ -10,12 +11,13 @@ dates <- read.csv("J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/A
                   header = F)
 
 #labor standards for target information
+message("select current Labor Standards dictionary")
 laborStandards <- read.csv(choose.files(default=
   "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Labor Standards"),
   header = F,colClasses = c(rep("character", 7),rep("numeric", 7)))
 #change column headers for labor standards
 colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
-                              "DepID", "StandardType", "TargetWHpU", "LEpU", 
+                              "DepID", "Standard Type", "Target WHpU", "LEpU", 
                               "WHpU2", "LEpU2", "PHpU", "MinStaff", "FixStaff", 
                               "KeyVol")
 #filter on key volume and turn effective date into date format
@@ -54,25 +56,26 @@ for(k in 1:length(reportBuilder)){
   }
 }
 
-
 #----------------------------Formatting and Calculations
+###Labor Standards###############################
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
-  select(Code, Name, Key.Volume, EffDate, StandardType, TargetWHpU) %>%
+  select(Hospital.x, Code, Name, Key.Volume, EffDate, `Standard Type`, `Target WHpU`) %>%
+###Baseline_Performance##########################  
   left_join(reportBuilder$baseline_performance, 
             by = c("Code" = "Department.Reporting.Definition.ID", 
                    "Key.Volume" = "Key.Volume")) 
 #take necessary columns
-breakdown_targets <- breakdown_targets[,c(1:6,14:ncol(breakdown_targets))]
+breakdown_targets <- breakdown_targets[,c(1:7,15:ncol(breakdown_targets))]
 #edit column names
-colnames(breakdown_targets)[7:21] <- c("1.4.20_FTE","1.4.20_Vol","1.4.20_WHpU",
+colnames(breakdown_targets)[c(1,8:22)] <- c("Hospital","1.4.20_FTE","1.4.20_Vol","1.4.20_WHpU",
                                "1.18.20_FTE","1.18.20_Vol","1.18.20_WHpU",
                                "2.1.20_FTE","2.1.20_Vol","2.1.20_WHpU",
                                "2.15.20_FTE","2.15.20_Vol","2.15.20_WHpU",
                                "2.29.20_FTE","2.29.20_Vol","2.29.20_WHpU")
 #convert data elements to numeric for average calculations
-for(i in 7:ncol(breakdown_targets)){
+for(i in 8:ncol(breakdown_targets)){
   breakdown_targets[,i] <- as.numeric(breakdown_targets[,i])
 }
 #calculate baseline averages and drop all other columns
@@ -84,15 +87,16 @@ breakdown_performance <- breakdown_targets %>%
          Baseline_WHpU = round(rowMeans(select(., contains("_WHpU")),
                                         na.rm = T), digits = 4)) %>%
   #select baseline averages
-  select(c(1:3, contains("Baseline_"), TargetWHpU, StandardType, EffDate)) %>%
+  select(c(1:4, contains("Baseline_"), `Target WHpU`, `Standard Type`, EffDate)) %>%
+###Department_Performance#######################
   #join reporting period performance table
   left_join(reportBuilder$department_performance,
             by = c("Code" = "Department.Reporting.Definition.ID",
                    "Key.Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
 dataElements <- c("FTE", "Vol", "WHpU")
-for(i in seq(from = 17, to = ncol(breakdown_performance), by = 3)){
-  numbers <- seq(from =17, to = ncol(breakdown_performance), by = 3)
+for(i in seq(from = 18, to = ncol(breakdown_performance), by = 3)){
+  numbers <- seq(from = 18, to = ncol(breakdown_performance), by = 3)
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
@@ -104,11 +108,52 @@ for(i in seq(from = 17, to = ncol(breakdown_performance), by = 3)){
 }
 #take necessary columns
 breakdown_performance <- 
-  breakdown_performance[,c(1:9,17:ncol(breakdown_performance))]
+  breakdown_performance[,c(1:10,18:ncol(breakdown_performance))]
 #convert data elements to numeric
-for(i in 10:ncol(breakdown_performance)){
+for(i in 11:ncol(breakdown_performance)){
   breakdown_performance[,i] <- as.numeric(breakdown_performance[,i])
 }
+#create list for reporting period variance calculations
+variance <- list()
+#list element for baseline and reporting period stats for all reporting periods
+index_sequence <- seq(from = 11, to = ncol(breakdown_performance)-2, by = 3)
+for(i in 1:length(index_sequence)){
+  variance[[i]] <- cbind(
+    breakdown_performance[,5:6],
+    breakdown_performance[,index_sequence[i]:(index_sequence[i]+2)])
+}
+#save column names in seperate list
+columns <- list()
+for(i in 1:length(variance)){
+  columns[[i]] <- colnames(variance[[i]])
+  colnames(variance[[i]]) <- c("Baseline_FTE", "Baseline_Vol", 
+                               "FTE", "Vol", "WHpU")
+}
+#calculate reporting period FTE variance to baseline FTE
+variance <- lapply(variance, transform, Var  = FTE - Baseline_FTE)
+#calculate % of baseline variance to baseline FTE
+variance <- lapply(variance, transform, Var_Percent = paste0(round(Var/Baseline_FTE*100,
+                                                                   digits = 2),"%"))
+#calculate reporting period volume variance to baseline volume
+variance <- lapply(variance, transform, 
+                   Vol_Percent = paste0(round((Vol - Baseline_Vol)/Baseline_Vol*100,
+                                              digits = 2),"%"))
+#rearange variance list elements and replace column names
+for(i in 1:length(variance)){
+  variance[[i]] <- variance[[i]][,c(3,6,7,4,8,5)]
+  colnames(variance[[i]]) <- c(
+    columns[[i]][3],
+    paste0(dates[i,1]," FTE Variance"),
+    paste0(dates[i,1]," FTE Variance %"),
+    columns[[i]][4],
+    paste0(dates[i,1]," Volume Variance %"),
+    columns[[i]][5])
+}
+#bind necessary columns from old breakdown_performance with variance list
+breakdown_performance <- cbind(
+  breakdown_performance[,1:10],
+  list.cbind(variance))
+###Productivity_Index###########################
 #NA the second row with text in it
 reportBuilder$productivity_index[1,] <- NA
 #convert % and variances to numeric
@@ -141,46 +186,37 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
   if(is.na(reportBuilder$productivity_index[i,9]) |
      is.na(reportBuilder$productivity_index[i,10])){
     reportBuilder$productivity_index$Watchlist[i] <- "Missing Data"
-  } else if(reportBuilder$productivity_index[i,9]  > 110 | 
-            reportBuilder$productivity_index[i,9]  < 95  &
-            reportBuilder$productivity_index[i,10] > 1){
+  } else if((reportBuilder$productivity_index[i,9]  > 110 | 
+            reportBuilder$productivity_index[i,9]  < 95)  &
+            abs(reportBuilder$productivity_index[i,10]) > 1){
     reportBuilder$productivity_index$Watchlist[i] <- "Watchlist"
   } else {
     reportBuilder$productivity_index$Watchlist[i] <- "Acceptable"
   }
 }
-################################################################################
-#-------Gotten this far
-################################################################################
-
-
-
-
-
-
-
-#join in productivity index
+#Turn productivity indexes into percentages
+reportBuilder$productivity_index[,3] <- 
+  paste0(reportBuilder$productivity_index[,3],
+         "%") 
+reportBuilder$productivity_index[,5] <- 
+  paste0(reportBuilder$productivity_index[,5],
+         "%")
+reportBuilder$productivity_index[,7] <- 
+  paste0(reportBuilder$productivity_index[,7],
+         "%")
+#join productivity index element to breakdown_performance
 breakdown_index <- 
   left_join(breakdown_performance,
-            reportBuilder$productivity[,c(5,7,10:ncol(reportBuilder$productivity_index))],
+            reportBuilder$productivity_index[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key.Volume" = "Key.Volume")) 
+                 "Key.Volume" = "Key.Volume"))
 #assign column names for productivity index columns
 colnames(breakdown_index)[(ncol(breakdown_index)-5):ncol(breakdown_index)] <- c(
-  paste(dates$V1[k],"Time Period Productivity Index"),
-  paste(dates$V1[k],"Time Period FTE Variance"),
-  paste(dates$V1[k],"Reporting Period Productivity Index"),
-  paste(dates$V1[k],"Reporting Period FTE Variance"),
-  paste(dates$V1[k],"FYTD Productivity Index"),
-  paste(dates$V1[k],"FYTD FTE Variance"))
+  "Productivity Index",
+  "FTE Variance",
+  "Productivity Index",
+  "FTE Variance",
+  "Productivity Index",
+  "FTE Variance")
 
-
-
-
-
-
-
-# repPer <- 
-# breakdown <- breakdown %>%
-#   mutate(`Reporting Period/FYTD Productivity Index` = breakdown)
-
+write.table(breakdown_index,"J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Department Breakdown/test2.csv",row.names = F, sep = ",")
