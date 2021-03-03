@@ -219,4 +219,9 @@ colnames(breakdown_index)[(ncol(breakdown_index)-5):ncol(breakdown_index)] <- c(
   "Productivity Index",
   "FTE Variance")
 
-write.table(breakdown_index,"J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Department Breakdown/test2.csv",row.names = F, sep = ",")
+Date <- "01-30-2021"
+write.table(breakdown_index,
+            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                   "Productivity/Analysis/MSHS Department Breakdown/",
+                   "Department Breakdown/MSHS_Department Performance Breakdown_",
+                   Date, ".csv"), row.names = F, sep = ",")
