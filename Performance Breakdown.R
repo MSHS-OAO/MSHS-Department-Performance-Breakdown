@@ -3,13 +3,24 @@ library(tidyr)
 library(readxl)
 library(rlist)
 
+#---------------------Establish Constants
+distribution <- "1/30/2021"
+previous_distribution <- "12/19/2020"
+
 #---------------------Read in files
 #Reporting definitions included in all hospital admin rollup reports
 definitions <- read.csv("J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Reporting Definitions/Reporting Definitions.csv")
 #Read in end dates file for column headers
 dates <- read.csv("J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/End Dates/EndDates.csv",
                   header = F)
-
+#calculate date index for distribution and previous distribution
+for(i in 1:nrow(dates)){
+  if(dates[i,1] == distribution){
+    distribution_i <- i
+  } else if(dates[i,1] == previous_distribution){
+    previous_distribution_i <- i
+  }
+}
 #labor standards for target information
 message("select current Labor Standards dictionary")
 laborStandards <- read.csv(choose.files(default=
@@ -138,6 +149,9 @@ variance <- lapply(variance, transform, Var_Percent = paste0(round(Var/Baseline_
 variance <- lapply(variance, transform, 
                    Vol_Percent = paste0(round((Vol - Baseline_Vol)/Baseline_Vol*100,
                                               digits = 2),"%"))
+#Calculate the distribution reporting period comparison
+rep_period_comparison <- variance[[previous_distribution_i]]$WHpU/
+  variance[[distribution_i]]$WHpU
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
   variance[[i]] <- variance[[i]][,c(3,6,7,4,8,5)]
@@ -153,6 +167,7 @@ for(i in 1:length(variance)){
 breakdown_performance <- cbind(
   breakdown_performance[,1:10],
   list.cbind(variance))
+colnames(breakdown_performance)[5:7] <- c("Baseline FTE", "Baseline Vol", "Baseline WHpU")
 ###Productivity_Index###########################
 #NA the second row with text in it
 reportBuilder$productivity_index[1,] <- NA
@@ -182,6 +197,7 @@ reportBuilder$productivity_index <-
     Prod[,7], 
     Var[,7])
 #logic for determining watchlist criteria
+reportBuilder$productivity_index$Watchlist <- NA
 for(i in 2:nrow(reportBuilder$productivity_index)){
   if(is.na(reportBuilder$productivity_index[i,9]) |
      is.na(reportBuilder$productivity_index[i,10])){
@@ -204,19 +220,28 @@ reportBuilder$productivity_index[,5] <-
 reportBuilder$productivity_index[,7] <- 
   paste0(reportBuilder$productivity_index[,7],
          "%")
+rep_period_comparison <- paste0(round(rep_period_comparison*100,2),
+                                "%")
 #join productivity index element to breakdown_performance
 breakdown_index <- 
   left_join(breakdown_performance,
             reportBuilder$productivity_index[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key.Volume" = "Key.Volume"))
+breakdown_index <- cbind(breakdown_index,rep_period_comparison)
 #assign column names for productivity index columns
-colnames(breakdown_index)[(ncol(breakdown_index)-5):ncol(breakdown_index)] <- c(
+colnames(breakdown_index)[(ncol(breakdown_index)-6):ncol(breakdown_index)] <- c(
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
-  "FTE Variance")
+  "FTE Variance",
+  "Previous WHpU/Current WHpU")
 
-write.table(breakdown_index,"J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Department Breakdown/test2.csv",row.names = F, sep = ",")
+Date <- gsub("/","-",distribution)
+write.table(breakdown_index,
+            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                   "Productivity/Analysis/MSHS Department Breakdown/",
+                   "Department Breakdown/MSHS_Department Performance Breakdown_",
+                   Date, ".csv"), row.names = F, sep = ",")
