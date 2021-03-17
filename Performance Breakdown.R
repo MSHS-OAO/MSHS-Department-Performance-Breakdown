@@ -130,14 +130,14 @@ variance <- list()
 index_sequence <- seq(from = 11, to = ncol(breakdown_performance)-2, by = 3)
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,5:6],
+    breakdown_performance[,5:7],
     breakdown_performance[,index_sequence[i]:(index_sequence[i]+2)])
 }
 #save column names in seperate list
 columns <- list()
 for(i in 1:length(variance)){
   columns[[i]] <- colnames(variance[[i]])
-  colnames(variance[[i]]) <- c("Baseline_FTE", "Baseline_Vol", 
+  colnames(variance[[i]]) <- c("Baseline_FTE", "Baseline_Vol", "Baseline_WHpU", 
                                "FTE", "Vol", "WHpU")
 }
 #calculate reporting period FTE variance to baseline FTE
@@ -149,19 +149,24 @@ variance <- lapply(variance, transform, Var_Percent = paste0(round(Var/Baseline_
 variance <- lapply(variance, transform, 
                    Vol_Percent = paste0(round((Vol - Baseline_Vol)/Baseline_Vol*100,
                                               digits = 2),"%"))
+#calculate reporting period WHpU variance to baseline WHpU
+variance <- lapply(variance, transform, 
+                   WHPU_Percent = paste0(round((WHpU - Baseline_WHpU)/Baseline_WHpU*100,
+                                              digits = 2),"%"))
 #Calculate the distribution reporting period comparison
-rep_period_comparison <- variance[[previous_distribution_i]]$WHpU/
-  variance[[distribution_i]]$WHpU
+rep_period_comparison <- 1 - (variance[[previous_distribution_i]]$WHpU/
+  variance[[distribution_i]]$WHpU)
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
-  variance[[i]] <- variance[[i]][,c(3,6,7,4,8,5)]
+  variance[[i]] <- variance[[i]][,c(4,7,8,5,9,6,10)]
   colnames(variance[[i]]) <- c(
-    columns[[i]][3],
-    paste0(dates[i,1]," FTE Variance"),
-    paste0(dates[i,1]," FTE Variance %"),
     columns[[i]][4],
-    paste0(dates[i,1]," Volume Variance %"),
-    columns[[i]][5])
+    paste0(dates[i,1], " FTE Variance"),
+    paste0(dates[i,1], " FTE Variance %"),
+    columns[[i]][5],
+    paste0(dates[i,1], " Volume Variance %"),
+    columns[[i]][6],
+    paste0(dates[i,1], " WHpU Variance %"))
 }
 #bind necessary columns from old breakdown_performance with variance list
 breakdown_performance <- cbind(
@@ -210,6 +215,8 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
     reportBuilder$productivity_index$Watchlist[i] <- "Acceptable"
   }
 }
+#Calculate the rep period to FYTD comaparison
+FYTD_comparison <- 1 - (reportBuilder[[3]][,5]/reportBuilder[[3]][,7])
 #Turn productivity indexes into percentages
 reportBuilder$productivity_index[,3] <- 
   paste0(reportBuilder$productivity_index[,3],
@@ -222,26 +229,35 @@ reportBuilder$productivity_index[,7] <-
          "%")
 rep_period_comparison <- paste0(round(rep_period_comparison*100,2),
                                 "%")
+reportBuilder[[3]]$FYTD_comparison <- paste0(round(FYTD_comparison*100,2),
+                                "%")
+Notes <- vector(mode="character", length=nrow(breakdown_performance))
 #join productivity index element to breakdown_performance
 breakdown_index <- 
   left_join(breakdown_performance,
-            reportBuilder$productivity_index[,c(1,2,11,3:8)],
+            reportBuilder$productivity_index[,c(1,2,11,3:8,12)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key.Volume" = "Key.Volume"))
-breakdown_index <- cbind(breakdown_index,rep_period_comparison)
+breakdown_index <- cbind(breakdown_index[,1:ncol(breakdown_index)-1],
+                         rep_period_comparison,
+                         breakdown_index[,ncol(breakdown_index)],
+                         Notes)
 #assign column names for productivity index columns
-colnames(breakdown_index)[(ncol(breakdown_index)-6):ncol(breakdown_index)] <- c(
+colnames(breakdown_index)[(ncol(breakdown_index)-8):ncol(breakdown_index)] <- c(
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
   "FTE Variance",
-  "Previous WHpU/Current WHpU")
+  "Previous Reporing Period WHpU Variance",
+  "FYTD WHpU Variance",
+  "Notes")
 
 Date <- gsub("/","-",distribution)
 write.table(breakdown_index,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/MSHS_Department Performance Breakdown_",
+                   "Department Breakdown/csv/",
+                   "MSHS_Department Performance Breakdown_",
                    Date, ".csv"), row.names = F, sep = ",")
