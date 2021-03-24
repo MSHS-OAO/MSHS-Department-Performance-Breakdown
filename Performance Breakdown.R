@@ -188,13 +188,13 @@ Prod <- reportBuilder$productivity_index[,] %>%
   select(seq(from = ncol(reportBuilder$productivity_index) - 35, 
              to = ncol(reportBuilder$productivity_index) - 5, 
              by = 6)) %>%
-  mutate(Prod = round(rowMeans(.), digits = 2))
+  mutate(Prod = round(rowMeans(.), digits = 0))
 #Select past 6 time period FTE Variances and calculate average
 Var <- reportBuilder$productivity_index[,] %>%
   select(seq(from = ncol(reportBuilder$productivity_index) - 34, 
              to = ncol(reportBuilder$productivity_index) - 4, 
              by = 6)) %>%
-  mutate(Prod = round(rowMeans(.), digits = 2))
+  mutate(Prod = round(rowMeans(.), digits = 0))
 #bind 6 time period averages to productivity_index list element
 reportBuilder$productivity_index <- 
   cbind(
