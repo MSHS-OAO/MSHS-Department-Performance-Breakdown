@@ -161,12 +161,12 @@ for(i in 1:length(variance)){
   variance[[i]] <- variance[[i]][,c(4,7,8,5,9,6,10)]
   colnames(variance[[i]]) <- c(
     columns[[i]][4],
-    paste0(dates[i,1], " FTE Variance"),
-    paste0(dates[i,1], " FTE Variance %"),
+    paste0("*",dates[i,1], " FTE Difference"),
+    paste0("*",dates[i,1], " FTE % Change"),
     columns[[i]][5],
-    paste0(dates[i,1], " Volume Variance %"),
+    paste0("*",dates[i,1], " Volume % Change"),
     columns[[i]][6],
-    paste0(dates[i,1], " WHpU Variance %"))
+    paste0("*",dates[i,1], " WHpU % Change"))
 }
 #bind necessary columns from old breakdown_performance with variance list
 breakdown_performance <- cbind(
@@ -250,8 +250,8 @@ colnames(breakdown_index)[(ncol(breakdown_index)-8):ncol(breakdown_index)] <- c(
   "FTE Variance",
   "Productivity Index",
   "FTE Variance",
-  "Previous Reporing Period WHpU Variance",
-  "FYTD WHpU Variance",
+  "WHpU % Change From Previous Distribution Period",
+  "WHpU % Change From FYTD",
   "Notes")
 
 Date <- gsub("/","-",distribution)
