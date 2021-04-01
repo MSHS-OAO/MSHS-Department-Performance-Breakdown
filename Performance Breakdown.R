@@ -151,11 +151,10 @@ variance <- lapply(variance, transform,
                                               digits = 2),"%"))
 #calculate reporting period WHpU variance to baseline WHpU
 variance <- lapply(variance, transform, 
-                   WHPU_Percent = paste0(round((WHpU - Baseline_WHpU)/Baseline_WHpU*100,
+                   WHPU_Percent = paste0(round((Baseline_WHpU - WHpU)/Baseline_WHpU*100,
                                               digits = 2),"%"))
 #Calculate the distribution reporting period comparison
-rep_period_comparison <- 1 - (variance[[previous_distribution_i]]$WHpU/
-  variance[[distribution_i]]$WHpU)
+rep_period_comparison <- 1 - (variance[[distribution_i]]$WHpU/variance[[previous_distribution_i]]$WHpU)
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
   variance[[i]] <- variance[[i]][,c(4,7,8,5,9,6,10)]
@@ -166,7 +165,7 @@ for(i in 1:length(variance)){
     columns[[i]][5],
     paste0("*",dates[i,1], " Volume % Change"),
     columns[[i]][6],
-    paste0("*",dates[i,1], " WHpU % Change"))
+    paste0("*",dates[i,1], " Productivity % Change"))
 }
 #bind necessary columns from old breakdown_performance with variance list
 breakdown_performance <- cbind(
@@ -216,7 +215,7 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
   }
 }
 #Calculate the rep period to FYTD comaparison
-FYTD_comparison <- 1 - (reportBuilder[[3]][,5]/reportBuilder[[3]][,7])
+FYTD_comparison <- 1 - (reportBuilder[[3]][,7]/reportBuilder[[3]][,5])
 #Turn productivity indexes into percentages
 reportBuilder$productivity_index[,3] <- 
   paste0(reportBuilder$productivity_index[,3],
@@ -250,8 +249,8 @@ colnames(breakdown_index)[(ncol(breakdown_index)-8):ncol(breakdown_index)] <- c(
   "FTE Variance",
   "Productivity Index",
   "FTE Variance",
-  "WHpU % Change From Previous Distribution Period",
-  "WHpU % Change From FYTD",
+  "Productivity % Change From Previous Distribution Period",
+  "Productivity % Difference From FYTD",
   "Notes")
 
 Date <- gsub("/","-",distribution)
