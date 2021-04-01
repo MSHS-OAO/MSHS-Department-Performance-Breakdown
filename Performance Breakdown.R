@@ -4,8 +4,8 @@ library(readxl)
 library(rlist)
 
 #---------------------Establish Constants
-distribution <- "1/30/2021"
-previous_distribution <- "12/19/2020"
+distribution <- "2/27/2021"
+previous_distribution <- "1/30/2021"
 
 #---------------------Read in files
 #Reporting definitions included in all hospital admin rollup reports
