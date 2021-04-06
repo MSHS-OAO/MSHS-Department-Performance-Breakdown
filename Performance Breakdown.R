@@ -22,10 +22,13 @@ for(i in 1:nrow(dates)){
   }
 }
 #labor standards for target information
-message("select current Labor Standards dictionary")
-laborStandards <- read.csv(choose.files(default=
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Labor Standards"),
-  header = F,colClasses = c(rep("character", 7),rep("numeric", 7)))
+#message("select current Labor Standards dictionary")
+laborStandards <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                  "MSHS Productivity/Productivity/Analysis/",
+                                  "MSHS Department Breakdown/Labor Standards/",
+                                  "LaborStandards.csv"),
+                           header = F,colClasses = c(rep("character", 7),
+                                                     rep("numeric", 7)))
 #change column headers for labor standards
 colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
                               "DepID", "Standard Type", "Target WHpU", "LEpU", 
@@ -44,17 +47,28 @@ laborStandards <- laborStandards %>%
 reportBuilder <- list()
 #text in parenthesis indicate saved report title
 #read baseline performance report (Baseline Performance)
-message("select Baseline Performance report")
-reportBuilder[[1]] <- read.csv(choose.files(default =
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Report Builder/Baseline Performance"))
+#message("select Baseline Performance report")
+reportBuilder[[1]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                      "MSHS Productivity/Productivity/",
+                                      "Analysis/MSHS Department Breakdown/",
+                                      "Report Builder/Baseline Performance/",
+                                      "Baseline.csv"))
 #read productivity performance report (Department Performance Breakdown)
-message("select Department Performance Breakdown report")
-reportBuilder[[2]] <- read.csv(choose.files(default =
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Report Builder/Department Performance Breakdown"))
+#message("select Department Performance Breakdown report")
+reportBuilder[[2]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                       "MSHS Productivity/Productivity/",
+                                       "Analysis/MSHS Department Breakdown/",
+                                       "Report Builder/",
+                                       "Department Performance Breakdown/",
+                                       "Report Builder.csv"))
 #Read productivity index report (Productivity Index Report)
-message("select Productivity Index Report report")
-reportBuilder[[3]] <- read.csv(choose.files(default =
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Report Builder/Productivity Index Performance"))
+#message("select Productivity Index Report report")
+reportBuilder[[3]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                      "MSHS Productivity/Productivity/",
+                                      "Analysis/MSHS Department Breakdown/",
+                                      "Report Builder/",
+                                      "Productivity Index Performance/",
+                                      "Productivity.csv"))
 #apply names to each list element
 names(reportBuilder) <- c("baseline_performance", "department_performance",
                           "productivity_index")
