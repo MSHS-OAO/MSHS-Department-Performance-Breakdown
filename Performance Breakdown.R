@@ -22,10 +22,13 @@ for(i in 1:nrow(dates)){
   }
 }
 #labor standards for target information
-message("select current Labor Standards dictionary")
-laborStandards <- read.csv(choose.files(default=
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Labor Standards"),
-  header = F,colClasses = c(rep("character", 7),rep("numeric", 7)))
+#message("select current Labor Standards dictionary")
+laborStandards <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                  "MSHS Productivity/Productivity/Analysis/",
+                                  "MSHS Department Breakdown/Labor Standards/",
+                                  "LaborStandards.csv"),
+                           header = F,colClasses = c(rep("character", 7),
+                                                     rep("numeric", 7)))
 #change column headers for labor standards
 colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
                               "DepID", "Standard Type", "Target WHpU", "LEpU", 
@@ -44,17 +47,28 @@ laborStandards <- laborStandards %>%
 reportBuilder <- list()
 #text in parenthesis indicate saved report title
 #read baseline performance report (Baseline Performance)
-message("select Baseline Performance report")
-reportBuilder[[1]] <- read.csv(choose.files(default =
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Report Builder/Baseline Performance"))
+#message("select Baseline Performance report")
+reportBuilder[[1]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                      "MSHS Productivity/Productivity/",
+                                      "Analysis/MSHS Department Breakdown/",
+                                      "Report Builder/Baseline Performance/",
+                                      "Baseline.csv"))
 #read productivity performance report (Department Performance Breakdown)
-message("select Department Performance Breakdown report")
-reportBuilder[[2]] <- read.csv(choose.files(default =
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Report Builder/Department Performance Breakdown"))
+#message("select Department Performance Breakdown report")
+reportBuilder[[2]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                       "MSHS Productivity/Productivity/",
+                                       "Analysis/MSHS Department Breakdown/",
+                                       "Report Builder/",
+                                       "Department Performance Breakdown/",
+                                       "Report Builder.csv"))
 #Read productivity index report (Productivity Index Report)
-message("select Productivity Index Report report")
-reportBuilder[[3]] <- read.csv(choose.files(default =
-  "J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Report Builder/Productivity Index Performance"))
+#message("select Productivity Index Report report")
+reportBuilder[[3]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                                      "MSHS Productivity/Productivity/",
+                                      "Analysis/MSHS Department Breakdown/",
+                                      "Report Builder/",
+                                      "Productivity Index Performance/",
+                                      "Productivity.csv"))
 #apply names to each list element
 names(reportBuilder) <- c("baseline_performance", "department_performance",
                           "productivity_index")
@@ -154,7 +168,10 @@ variance <- lapply(variance, transform,
                    WHPU_Percent = paste0(round((Baseline_WHpU - WHpU)/Baseline_WHpU*100,
                                               digits = 2),"%"))
 #Calculate the distribution reporting period comparison
-rep_period_comparison <- 1 - (variance[[distribution_i]]$WHpU/variance[[previous_distribution_i]]$WHpU)
+#rep_period_comparison <- 1 - (variance[[distribution_i]]$WHpU/variance[[previous_distribution_i]]$WHpU)
+rep_period_comparison <- 
+  (breakdown_performance$`Target WHpU`/variance[[distribution_i]]$WHpU) -
+  (breakdown_performance$`Target WHpU`/variance[[previous_distribution_i]]$WHpU)
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
   variance[[i]] <- variance[[i]][,c(4,7,8,5,9,6,10)]
@@ -215,7 +232,10 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
   }
 }
 #Calculate the rep period to FYTD comaparison
-FYTD_comparison <- 1 - (reportBuilder[[3]][,7]/reportBuilder[[3]][,5])
+#FYTD_comparison <- 1 - (reportBuilder[[3]][,7]/reportBuilder[[3]][,5])
+
+FYTD_comparison <- reportBuilder[[3]][,5] - reportBuilder[[3]][,7]
+
 #Turn productivity indexes into percentages
 reportBuilder$productivity_index[,3] <- 
   paste0(reportBuilder$productivity_index[,3],
@@ -228,7 +248,7 @@ reportBuilder$productivity_index[,7] <-
          "%")
 rep_period_comparison <- paste0(round(rep_period_comparison*100,2),
                                 "%")
-reportBuilder[[3]]$FYTD_comparison <- paste0(round(FYTD_comparison*100,2),
+reportBuilder[[3]]$FYTD_comparison <- paste0(round(FYTD_comparison,2),
                                 "%")
 Notes <- vector(mode="character", length=nrow(breakdown_performance))
 #join productivity index element to breakdown_performance
@@ -249,8 +269,8 @@ colnames(breakdown_index)[(ncol(breakdown_index)-8):ncol(breakdown_index)] <- c(
   "FTE Variance",
   "Productivity Index",
   "FTE Variance",
-  "Productivity % Change From Previous Distribution Period",
-  "Productivity % Difference From FYTD",
+  "Productivity Index % Difference From Previous Distribution Period",
+  "Productivity Index % Difference From FYTD",
   "Notes")
 
 Date <- gsub("/","-",distribution)
