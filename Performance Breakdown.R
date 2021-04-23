@@ -6,12 +6,10 @@ library(rlist)
 #---------------------Establish Constants
 distribution <- "2/27/2021"
 previous_distribution <- "1/30/2021"
-
-#---------------------Read in files
-#Reporting definitions included in all hospital admin rollup reports
-definitions <- read.csv("J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/Reporting Definitions/Reporting Definitions.csv")
 #Read in end dates file for column headers
-dates <- read.csv("J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/Analysis/MSHS Department Breakdown/End Dates/EndDates.csv",
+dates <- read.csv(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                         "Productivity/Analysis/MSHS Department Breakdown/",
+                         "End Dates/EndDates.csv"), 
                   header = F)
 #calculate date index for distribution and previous distribution
 for(i in 1:nrow(dates)){
@@ -21,8 +19,18 @@ for(i in 1:nrow(dates)){
     previous_distribution_i <- i
   }
 }
+
+#---------------------Read in files
+#Reporting definitions included in all hospital admin rollup reports
+definitions <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
+                               "MSHS Productivity/Productivity/Analysis/",
+                               "MSHS Department Breakdown/",
+                               "Reporting Definitions/",
+                               "Reporting Definitions.csv"))
+
+
+
 #labor standards for target information
-#message("select current Labor Standards dictionary")
 laborStandards <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
                                   "MSHS Productivity/Productivity/Analysis/",
                                   "MSHS Department Breakdown/Labor Standards/",
@@ -43,16 +51,16 @@ laborStandards <- laborStandards %>%
              substr(EffDate,3,4), "/",
              substr(EffDate,5,8)),
          EffDate = as.Date(EffDate, format = "%m/%d/%Y")) 
+
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
 #text in parenthesis indicate saved report title
-#read baseline performance report (Baseline Performance)
-#message("select Baseline Performance report")
+#read baseline performance report (Time Period Performance)
 reportBuilder[[1]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
                                       "MSHS Productivity/Productivity/",
                                       "Analysis/MSHS Department Breakdown/",
-                                      "Report Builder/Baseline Performance/",
-                                      "Baseline.csv"))
+                                      "Report Builder/Time Period Performance/",
+                                      "Time Period Performance.csv"))
 #read productivity performance report (Department Performance Breakdown)
 #message("select Department Performance Breakdown report")
 reportBuilder[[2]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
@@ -70,12 +78,14 @@ reportBuilder[[3]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
                                       "Productivity Index Performance/",
                                       "Productivity.csv"))
 #apply names to each list element
-names(reportBuilder) <- c("baseline_performance", "department_performance",
+names(reportBuilder) <- c("time_period_performance", "department_performance",
                           "productivity_index")
 #remove commas from report builders to convert character to numeric
 for(k in 1:length(reportBuilder)){
   for(j in 10:ncol(reportBuilder[[k]])){
     for(i in 2:nrow(reportBuilder[[k]])){
+      reportBuilder[[k]][i,j] <- gsub(" ", "", reportBuilder[[k]][i,j])
+      reportBuilder[[k]][i,j] <- gsub("\\$", "", reportBuilder[[k]][i,j])
       reportBuilder[[k]][i,j] <- gsub(",", "", reportBuilder[[k]][i,j])
     }
   }
@@ -86,38 +96,57 @@ for(k in 1:length(reportBuilder)){
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
-  select(Hospital.x, Code, Name, Key.Volume, EffDate, `Standard Type`, `Target WHpU`) %>%
+  select(Hospital.x, Code, Name, Key.Volume,
+         EffDate, `Standard Type`, `Target WHpU`) %>%
 ###Baseline_Performance##########################  
-  left_join(reportBuilder$baseline_performance, 
+  left_join(reportBuilder$time_period_performance, 
             by = c("Code" = "Department.Reporting.Definition.ID", 
                    "Key.Volume" = "Key.Volume")) 
 #take necessary columns
-breakdown_targets <- breakdown_targets[,c(1:7,15:ncol(breakdown_targets))]
-#edit column names
-colnames(breakdown_targets)[c(1,8:22)] <- c("Hospital","1.4.20_FTE","1.4.20_Vol","1.4.20_WHpU",
-                               "1.18.20_FTE","1.18.20_Vol","1.18.20_WHpU",
-                               "2.1.20_FTE","2.1.20_Vol","2.1.20_WHpU",
-                               "2.15.20_FTE","2.15.20_Vol","2.15.20_WHpU",
-                               "2.29.20_FTE","2.29.20_Vol","2.29.20_WHpU")
+breakdown_targets <- 
+  as.data.frame(breakdown_targets[,c(1:7,15:ncol(breakdown_targets))])
 #convert data elements to numeric for average calculations
 for(i in 8:ncol(breakdown_targets)){
   breakdown_targets[,i] <- as.numeric(breakdown_targets[,i])
 }
-#calculate baseline averages and drop all other columns
-breakdown_performance <- breakdown_targets %>%
-  mutate(Baseline_FTE = round(rowMeans(select(., contains("_FTE")),
-                                       na.rm = T), digits = 2),
-         Baseline_Vol = round(rowMeans(select(., contains("_Vol")),
-                                       na.rm = T), digits = 2),
-         Baseline_WHpU = round(rowMeans(select(., contains("_WHpU")),
-                                        na.rm = T), digits = 4)) %>%
-  #select baseline averages
-  select(c(1:4, contains("Baseline_"), `Target WHpU`, `Standard Type`, EffDate)) %>%
-###Department_Performance#######################
-  #join reporting period performance table
-  left_join(reportBuilder$department_performance,
-            by = c("Code" = "Department.Reporting.Definition.ID",
-                   "Key.Volume" = "Key.Volume"))
+#create list for time period averages
+time_period <- list()
+#place 26 time periods of each metric into each list object. 7 list objects
+cadence <- seq(from = 8, to = ncol(breakdown_targets), by = 7)
+for(i in 0:6){
+  time_period[[i+1]] <- breakdown_targets[,cadence + i]
+}
+#calculate 26 time period avg for each metric
+time_period <- lapply(time_period, function(x) {
+  data.frame(x) %>%
+    mutate(Avg = rowMeans(x, na.rm = T))})
+#cbind metric averages
+breakdown_time_period <- cbind(
+  breakdown_targets[,1:7], time_period[[1]][,27], time_period[[2]][,27],
+  time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
+  time_period[[6]][,27], time_period[[7]][,27])
+#Assign column names
+colnames(breakdown_time_period)[8:14] <- c("Target Worked FTE", "Worked FTE", 
+                                           "Volume", "Paid Hours", "OT Hours", 
+                                           "Target LE", "LE")
+#calculate PI, OT% and LE Index
+breakdown_time_period <- breakdown_time_period %>%
+  mutate(`Productivity Index` = (`Target Worked FTE`/`Worked FTE`) * 100,
+         `OT%` = (`OT Hours`/`Paid Hours`) * 100,
+         `LE Index` = (`Target LE`/LE) * 100) %>%
+#select necessary columns
+  select(Hospital.x, Code, Name, Key.Volume, EffDate, `Standard Type`, 
+         `Target WHpU`, `Worked FTE`, Volume, `Productivity Index`, 
+         `OT%`, `LE Index`)
+
+
+
+
+# ###Department_Performance#######################
+#   #join reporting period performance table
+#   left_join(reportBuilder$department_performance,
+#             by = c("Code" = "Department.Reporting.Definition.ID",
+#                    "Key.Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
 dataElements <- c("FTE", "Vol", "WHpU")
 for(i in seq(from = 18, to = ncol(breakdown_performance), by = 3)){
