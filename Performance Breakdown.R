@@ -2,6 +2,7 @@ library(dplyr)
 library(tidyr)
 library(readxl)
 library(rlist)
+library(stringr)
 
 #---------------------Establish Constants
 distribution <- "2/27/2021"
