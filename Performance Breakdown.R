@@ -127,16 +127,17 @@ breakdown_time_period <- cbind(
   time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
   time_period[[6]][,27], time_period[[7]][,27])
 #Assign column names
-colnames(breakdown_time_period)[8:14] <- c("Target Worked FTE", "Worked FTE", 
-                                           "Volume", "Paid Hours", "OT Hours", 
-                                           "Target LE", "LE")
+colnames(breakdown_time_period)[c(1,8:14)] <- c("Hospital", "Target Worked FTE", 
+                                             "Worked FTE", "Volume", 
+                                             "Paid Hours", "OT Hours", 
+                                             "Target LE", "LE")
 #calculate PI, OT% and LE Index
 breakdown_time_period <- breakdown_time_period %>%
   mutate(`Productivity Index` = (`Target Worked FTE`/`Worked FTE`) * 100,
          `OT%` = (`OT Hours`/`Paid Hours`) * 100,
          `LE Index` = (`Target LE`/LE) * 100) %>%
 #select necessary columns
-  select(Hospital.x, Code, Name, Key.Volume, EffDate, `Standard Type`, 
+  select(Hospital, Code, Name, Key.Volume, EffDate, `Standard Type`, 
          `Target WHpU`, `Worked FTE`, Volume, `Productivity Index`, 
          `OT%`, `LE Index`)
 
