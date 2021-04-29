@@ -22,20 +22,19 @@ for(i in 1:nrow(dates)){
 }
 
 #---------------------Read in files
+dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/Productivity/",
+                 "Analysis/MSHS Department Breakdown/")
+
 #Reporting definitions included in all hospital admin rollup reports
-definitions <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
-                               "MSHS Productivity/Productivity/Analysis/",
-                               "MSHS Department Breakdown/",
+definitions <- read.csv(paste0(dir_breakdown,
                                "Reporting Definitions/",
                                "Reporting Definitions.csv"))
 
 
 
 #labor standards for target information
-laborStandards <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
-                                  "MSHS Productivity/Productivity/Analysis/",
-                                  "MSHS Department Breakdown/Labor Standards/",
-                                  "LaborStandards.csv"),
+laborStandards <- read.csv(paste0(dir_breakdown,
+                                  "Labor Standards/", "LaborStandards.csv"),
                            header = F,colClasses = c(rep("character", 7),
                                                      rep("numeric", 7)))
 #change column headers for labor standards
@@ -57,30 +56,29 @@ laborStandards <- laborStandards %>%
 reportBuilder <- list()
 #text in parenthesis indicate saved report title
 #read baseline performance report (Time Period Performance)
-reportBuilder[[1]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
-                                      "MSHS Productivity/Productivity/",
-                                      "Analysis/MSHS Department Breakdown/",
+reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Time Period Performance/",
                                       "Time Period Performance.csv"))
 #read productivity performance report (Department Performance Breakdown)
-#message("select Department Performance Breakdown report")
-reportBuilder[[2]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
-                                       "MSHS Productivity/Productivity/",
-                                       "Analysis/MSHS Department Breakdown/",
+reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
                                        "Report Builder/",
                                        "Department Performance Breakdown/",
                                        "Report Builder.csv"))
 #Read productivity index report (Productivity Index Report)
-#message("select Productivity Index Report report")
-reportBuilder[[3]] <- read.csv(paste0("J:/deans/Presidents/SixSigma/",
-                                      "MSHS Productivity/Productivity/",
-                                      "Analysis/MSHS Department Breakdown/",
+reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Productivity Index Performance/",
                                       "Productivity.csv"))
+#Read FYTD report (FYTD Performance Report)
+reportBuilder[[4]] <- read.csv(paste0(dir_breakdown, 
+                                      "Report Builder/FYTD Performance/",
+                                      "FYTD Performance.csv"),
+                               as.is = T)
+
 #apply names to each list element
 names(reportBuilder) <- c("time_period_performance", "department_performance",
-                          "productivity_index")
+                          "productivity_index", "FYTD_performance")
+
 #remove commas from report builders to convert character to numeric
 for(k in 1:length(reportBuilder)){
   for(j in 10:ncol(reportBuilder[[k]])){
@@ -262,9 +260,31 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
     reportBuilder$productivity_index$Watchlist[i] <- "Acceptable"
   }
 }
-#Calculate the rep period to FYTD comaparison
-#FYTD_comparison <- 1 - (reportBuilder[[3]][,7]/reportBuilder[[3]][,5])
 
+###############################Anjelica FYTD performance calculations
+# Preprocessing Data ------------------------------------------------------
+#renaming columns
+rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:8],
+                      paste(reportBuilder[[4]][1, 9:ncol(reportBuilder[[4]])]))
+colnames(reportBuilder[[4]]) <- rb_fytd_colnames
+#removing empty column/row from exported format
+reportBuilder[[4]] <- reportBuilder[[4]] %>%
+  mutate(Metrics = NULL) %>%
+  slice(-1)
+
+# Calculations ------------------------------------------------------------
+reportBuilder[[4]] <- reportBuilder[[4]] %>%
+  mutate(`Productivity Index FYTD` =
+           (`Total Target Worked FTE - FYTD Avg` / `Actual Worked FTE - FYTD Avg`) * 100,
+         `OT % FYTD` =
+           (`Overtime Hours - FYTD Avg` / `Total Paid Hours - FYTD Avg`) * 100,
+         `LE Index FYTD` =
+           (`Target Labor Expense - FYTD Avg` / `Actual Labor Expense - FYTD Avg`) * 100)
+#####################################################################
+
+
+
+#Calculate the rep period to FYTD comaparison
 FYTD_comparison <- reportBuilder[[3]][,5] - reportBuilder[[3]][,7]
 
 #Turn productivity indexes into percentages
