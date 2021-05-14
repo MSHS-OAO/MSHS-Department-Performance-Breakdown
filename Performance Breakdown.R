@@ -5,13 +5,22 @@ library(rlist)
 library(stringr)
 
 #---------------------Establish Constants
-distribution <- "2/27/2021"
-previous_distribution <- "1/30/2021"
+distribution <- "02/27/2021"
+previous_distribution <- "01/30/2021"
+
 #Read in end dates file for column headers
-dates <- read.csv(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                         "Productivity/Analysis/MSHS Department Breakdown/",
-                         "End Dates/EndDates.csv"), 
-                  header = F)
+dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                         "Productivity/Universal Mapping/",
+                         "MSHS_Pay_Cycle.xlsx")) %>%
+  select(END.DATE) %>%
+  mutate(END.DATE = as.Date(END.DATE)) %>%
+  filter(END.DATE >= as.Date("05/23/2020", format = "%m/%d/%Y")) %>%
+  mutate(END.DATE = paste0(
+    substr(END.DATE, 6, 7), "/",
+    substr(END.DATE, 9, 10), "/",
+    substr(END.DATE, 1, 4))) %>%
+  distinct()
+
 #calculate date index for distribution and previous distribution
 for(i in 1:nrow(dates)){
   if(dates[i,1] == distribution){
@@ -26,9 +35,19 @@ dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
 #Reporting definitions included in all hospital admin rollup reports
-definitions <- read.csv(paste0(dir_breakdown,
+definitions1 <- read.csv(paste0(dir_breakdown,
                                "Reporting Definitions/",
                                "Reporting Definitions.csv"))
+#Reporting definitions included in all hospital admin rollup reports
+definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
+                                "MSHS Productivity/Productivity/",
+                                "Universal Mapping/",
+                                "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
+  filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
+  select(SITE,DEFINITION.CODE,DEFINITION.NAME,KEY.VOLUME) %>%
+  distinct()
+colnames(definitions) <- c("Hospital", "Code", "Name", "Key.Volume")
+  
 #labor standards for target information
 laborStandards <- read.csv(paste0(dir_breakdown,
                                   "Labor Standards/", "LaborStandards.csv"),
@@ -164,13 +183,13 @@ for(i in seq(from = 20, to = ncol(breakdown_time_period), by = 7)){
       k = j
     }
   }
-  colnames(breakdown_time_period)[i] <- paste(dates$V1[k], dataElements[1])
-  colnames(breakdown_time_period)[i+1] <- paste(dates$V1[k], dataElements[2])
-  colnames(breakdown_time_period)[i+2] <- paste(dates$V1[k], dataElements[3])
-  colnames(breakdown_time_period)[i+3] <- paste(dates$V1[k], dataElements[4])
-  colnames(breakdown_time_period)[i+4] <- paste(dates$V1[k], dataElements[5])
-  colnames(breakdown_time_period)[i+5] <- paste(dates$V1[k], dataElements[6])
-  colnames(breakdown_time_period)[i+6] <- paste(dates$V1[k], dataElements[7])
+  colnames(breakdown_time_period)[i] <- paste(dates[k,1], dataElements[1])
+  colnames(breakdown_time_period)[i+1] <- paste(dates[k,1], dataElements[2])
+  colnames(breakdown_time_period)[i+2] <- paste(dates[k,1], dataElements[3])
+  colnames(breakdown_time_period)[i+3] <- paste(dates[k,1], dataElements[4])
+  colnames(breakdown_time_period)[i+4] <- paste(dates[k,1], dataElements[5])
+  colnames(breakdown_time_period)[i+5] <- paste(dates[k,1], dataElements[6])
+  colnames(breakdown_time_period)[i+6] <- paste(dates[k,1], dataElements[7])
 }
 #take necessary columns
 breakdown_performance <- 
