@@ -358,8 +358,23 @@ breakdown_index <- cbind(breakdown_index[,1:ncol(breakdown_index)-1],
                          rep_period_comparison,
                          breakdown_index[,ncol(breakdown_index)],
                          Notes)
+
+output_site <- c("MSHS")
+# enter "MSHS" for all sites
+
+#breakdown_index$Hospital <- as.character(breakdown_index$Hospital)
+
+if("MSHS" %in% output_site){
+  output_index <- breakdown_index
+} else {
+  
+  output_index <- breakdown_index %>%
+    filter(Hospital %in% output_site
+    )
+}
+
 #assign column names for productivity index columns
-colnames(breakdown_index)[(ncol(breakdown_index)-8):ncol(breakdown_index)] <- c(
+colnames(output_index)[(ncol(output_index)-8):ncol(output_index)] <- c(
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
@@ -371,9 +386,14 @@ colnames(breakdown_index)[(ncol(breakdown_index)-8):ncol(breakdown_index)] <- c(
   "Notes")
 
 Date <- gsub("/","-",distribution)
-write.table(breakdown_index,
+
+
+
+
+write.table(output_index,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/",
                    "MSHS_Department Performance Breakdown_",
-                   Date, ".csv"), row.names = F, sep = ",")
+                   Date, "_", paste(output_site, collapse = " & "), ".csv"), 
+            row.names = F, sep = ",")
