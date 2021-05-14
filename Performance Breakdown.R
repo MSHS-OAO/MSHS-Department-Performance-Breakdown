@@ -54,37 +54,52 @@ reportBuilder <- list()
 #read baseline performance report (Time Period Performance)
 reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Time Period Performance/",
-                                      "Time Period Performance.csv"))
+                                      "Time Period Performance.csv"),
+                               as.is = T)
 #read productivity performance report (Department Performance Breakdown)
 reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
-                                       "Report Builder/",
-                                       "Department Performance Breakdown/",
-                                       "Report Builder.csv"))
+                                      "Report Builder/",
+                                      "Department Performance Breakdown/",
+                                      "Report Builder.csv"),
+                               as.is = T)
 #Read productivity index report (Productivity Index Report)
 reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Productivity Index Performance/",
-                                      "Productivity.csv"))
+                                      "Productivity.csv"),
+                               as.is = T)
 #Read FYTD report (FYTD Performance Report)
 reportBuilder[[4]] <- read.csv(paste0(dir_breakdown, 
                                       "Report Builder/FYTD Performance/",
                                       "FYTD Performance.csv"),
                                as.is = T)
 
+#function to format numeric column by column name "col_name" to remove
+#text characters in the data table "df"
+format_numbers <- function(df, col_name){
+  df[2:nrow(df), col_name] <- df[2:nrow(df), col_name] %>%
+    str_replace_all(c("," = "", " " = "", "\\$" = ""))
+  #df[, col_name] <- df[, col_name] %>%
+  #str_replace_all(c("," = "", " " = "", "\\$" = ""))
+  #df[, col_name] <- as.numeric(df[, col_name])
+}
+#function to apply numeric formatting function to each "x" data table 
+#in the list "lt"
+format_list <- function(lt, x){
+  lt[[x]][2:nrow(lt[[x]]), 10:ncol(lt[[x]])] <- 
+    sapply(colnames(lt[[x]])[10:ncol(lt[[x]])],
+           function(y) format_numbers(lt[[x]], y))
+  #lt[[x]][, 10:ncol(lt[[x]])] <- 
+  #sapply(colnames(lt[[x]])[10:ncol(lt[[x]])],
+  #function(y) format_numbers(lt[[x]], y))
+  return(lt[[x]])
+}
+#using functions to format numeric columns in all data tables in the list
+reportBuilder <- sapply(1:length(reportBuilder), 
+                        function(x) format_list(reportBuilder, x))
 #apply names to each list element
 names(reportBuilder) <- c("time_period_performance", "department_performance",
                           "productivity_index", "FYTD_performance")
-
-#remove commas from report builders to convert character to numeric
-for(k in 1:length(reportBuilder)){
-  for(j in 10:ncol(reportBuilder[[k]])){
-    for(i in 2:nrow(reportBuilder[[k]])){
-      reportBuilder[[k]][i,j] <- gsub(" ", "", reportBuilder[[k]][i,j])
-      reportBuilder[[k]][i,j] <- gsub("\\$", "", reportBuilder[[k]][i,j])
-      reportBuilder[[k]][i,j] <- gsub(",", "", reportBuilder[[k]][i,j])
-    }
-  }
-}
 
 #----------------------------Formatting and Calculations
 ###Labor Standards###############################
@@ -182,13 +197,13 @@ for(i in 1:length(variance)){
                                "Target_FTE", "FTE", "Vol", "Paid_Hours", 
                                "OT_Hours", "Target_LE", "LE")
 }
-#calculate reporting period FTE variance to baseline FTE
+#calculate reporting period FTE difference to baseline FTE
 variance <- lapply(variance, transform, 
                    FTE_Var  = FTE - Baseline_FTE)
-#calculate % of baseline variance to baseline FTE
+#calculate FTE % change to baseline FTE
 variance <- lapply(variance, transform, 
                    Var_Percent = FTE_Var/Baseline_FTE * 100)
-#calculate reporting period volume variance to baseline volume
+#calculate reporting period volume % change to baseline volume
 variance <- lapply(variance, transform, 
                    Vol_Percent = (((Vol - Baseline_Vol)/Baseline_Vol) * 100))
 #calculate reporting period PI
