@@ -5,21 +5,12 @@ library(rlist)
 library(stringr)
 
 #---------------------Establish Constants
+#Site(s) user would like to produce department breakdown for
+output_site <- c("MSHS")
+# enter "MSHS" for all sites
+
 distribution <- "02/27/2021"
 previous_distribution <- "01/30/2021"
-
-#Read in end dates file for column headers
-dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                         "Productivity/Universal Mapping/",
-                         "MSHS_Pay_Cycle.xlsx")) %>%
-  select(END.DATE) %>%
-  mutate(END.DATE = as.Date(END.DATE)) %>%
-  filter(END.DATE >= as.Date("05/23/2020", format = "%m/%d/%Y")) %>%
-  mutate(END.DATE = paste0(
-    substr(END.DATE, 6, 7), "/",
-    substr(END.DATE, 9, 10), "/",
-    substr(END.DATE, 1, 4))) %>%
-  distinct()
 
 #calculate date index for distribution and previous distribution
 for(i in 1:nrow(dates)){
@@ -34,10 +25,19 @@ for(i in 1:nrow(dates)){
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
-#Reporting definitions included in all hospital admin rollup reports
-definitions1 <- read.csv(paste0(dir_breakdown,
-                               "Reporting Definitions/",
-                               "Reporting Definitions.csv"))
+#Read in end dates file for column headers
+dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                          "Productivity/Universal Mapping/",
+                          "MSHS_Pay_Cycle.xlsx")) %>%
+  select(END.DATE) %>%
+  mutate(END.DATE = as.Date(END.DATE)) %>%
+  filter(END.DATE >= as.Date("05/23/2020", format = "%m/%d/%Y")) %>%
+  mutate(END.DATE = paste0(
+    substr(END.DATE, 6, 7), "/",
+    substr(END.DATE, 9, 10), "/",
+    substr(END.DATE, 1, 4))) %>%
+  distinct()
+
 #Reporting definitions included in all hospital admin rollup reports
 definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "MSHS Productivity/Productivity/",
@@ -47,7 +47,7 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
   select(SITE,DEFINITION.CODE,DEFINITION.NAME,KEY.VOLUME) %>%
   distinct()
 colnames(definitions) <- c("Hospital", "Code", "Name", "Key.Volume")
-  
+
 #labor standards for target information
 laborStandards <- read.csv(paste0(dir_breakdown,
                                   "Labor Standards/", "LaborStandards.csv"),
@@ -67,9 +67,9 @@ laborStandards <- laborStandards %>%
              substr(EffDate,3,4), "/",
              substr(EffDate,5,8)),
          EffDate = as.Date(EffDate, format = "%m/%d/%Y")) 
+
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
-#text in parenthesis indicate saved report title
 #read baseline performance report (Time Period Performance)
 reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Time Period Performance/",
@@ -93,14 +93,16 @@ reportBuilder[[4]] <- read.csv(paste0(dir_breakdown,
                                       "FYTD Performance.csv"),
                                as.is = T)
 
+#---------------------Format files
+#renaming columns
+rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:9],
+                      paste(reportBuilder[[4]][1, 10:ncol(reportBuilder[[4]])]))
+colnames(reportBuilder[[4]]) <- rb_fytd_colnames
 #function to format numeric column by column name "col_name" to remove
 #text characters in the data table "df"
 format_numbers <- function(df, col_name){
   df[2:nrow(df), col_name] <- df[2:nrow(df), col_name] %>%
-    str_replace_all(c("," = "", " " = "", "\\$" = ""))
-  #df[, col_name] <- df[, col_name] %>%
-  #str_replace_all(c("," = "", " " = "", "\\$" = ""))
-  #df[, col_name] <- as.numeric(df[, col_name])
+    str_replace_all(c("," = "", " " = "", "\\$" = "", "%" = ""))
 }
 #function to apply numeric formatting function to each "x" data table 
 #in the list "lt"
@@ -108,9 +110,9 @@ format_list <- function(lt, x){
   lt[[x]][2:nrow(lt[[x]]), 10:ncol(lt[[x]])] <- 
     sapply(colnames(lt[[x]])[10:ncol(lt[[x]])],
            function(y) format_numbers(lt[[x]], y))
-  #lt[[x]][, 10:ncol(lt[[x]])] <- 
-  #sapply(colnames(lt[[x]])[10:ncol(lt[[x]])],
-  #function(y) format_numbers(lt[[x]], y))
+  lt[[x]] <- lt[[x]] %>% slice(-1)
+  lt[[x]][, 10:ncol(lt[[x]])] <- sapply(lt[[x]][, 10:ncol(lt[[x]])],
+                                        function(x) as.numeric(x))
   return(lt[[x]])
 }
 #using functions to format numeric columns in all data tables in the list
@@ -120,7 +122,7 @@ reportBuilder <- sapply(1:length(reportBuilder),
 names(reportBuilder) <- c("time_period_performance", "department_performance",
                           "productivity_index", "FYTD_performance")
 
-#----------------------------Formatting and Calculations
+#---------------------Formatting and Calculations
 ###Labor Standards###############################
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
@@ -134,10 +136,6 @@ breakdown_targets <-
 #take necessary columns
 breakdown_targets <- 
   as.data.frame(breakdown_targets[,c(1:7,15:ncol(breakdown_targets))])
-#convert data elements to numeric for average calculations
-for(i in 8:ncol(breakdown_targets)){
-  breakdown_targets[,i] <- as.numeric(breakdown_targets[,i])
-}
 #create list for time period averages
 time_period <- list()
 #place 26 time periods of each metric into each list object. 7 list objects
@@ -176,6 +174,7 @@ breakdown_time_period <- breakdown_time_period %>%
 #clean up column headers based on data element and pp end date
 dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
                   "Target Labor Expense", "Labor Expense")
+#Assign column names based on dates and data elements
 for(i in seq(from = 20, to = ncol(breakdown_time_period), by = 7)){
   numbers <- seq(from = 20, to = ncol(breakdown_time_period), by = 7)
   for(j in 1:length(numbers)){
@@ -194,10 +193,6 @@ for(i in seq(from = 20, to = ncol(breakdown_time_period), by = 7)){
 #take necessary columns
 breakdown_performance <- 
   breakdown_time_period[,c(1:12,20:ncol(breakdown_time_period))]
-#convert data elements to numeric
-for(i in 13:ncol(breakdown_performance)){
-  breakdown_performance[,i] <- as.numeric(breakdown_performance[,i])
-}
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
@@ -256,7 +251,7 @@ for(i in 1:length(variance)){
     paste0("*",dates[i,1], " PI Difference"),
     paste0(dates[i,1], " Overtime %"),
     paste0("*",dates[i,1], " OT Difference"),
-    paste0(dates[i,1], " LE Index"),
+    paste0(dates[i,1], " LE Index"), 
     paste0("*",dates[i,1], " LE Index Difference"))
 }
 #bind necessary columns from old breakdown_performance with variance list
@@ -265,15 +260,6 @@ breakdown_performance <- cbind(
   list.cbind(variance))
 
 ###Productivity_Index###########################
-#NA the second row with text in it
-reportBuilder$productivity_index[1,] <- NA
-#convert % and variances to numeric
-for(i in seq(from = 10, to = ncol(reportBuilder$productivity_index), by = 2)){
-    reportBuilder$productivity_index[,i] <- 
-      as.numeric(sub("%", "", reportBuilder$productivity_index[,i]))
-    reportBuilder$productivity_index[,i+1] <- 
-      as.numeric(reportBuilder$productivity_index[,i+1])
-}
 #Select past 6 time period productivity index and calculate average
 Prod <- reportBuilder$productivity_index[,] %>%
   select(seq(from = ncol(reportBuilder$productivity_index) - 35, 
@@ -293,7 +279,6 @@ reportBuilder$productivity_index <-
     Prod[,7], 
     Var[,7])
 #logic for determining watchlist criteria
-reportBuilder$productivity_index$Watchlist <- NA
 for(i in 2:nrow(reportBuilder$productivity_index)){
   if(is.na(reportBuilder$productivity_index[i,9]) |
      is.na(reportBuilder$productivity_index[i,10])){
@@ -306,19 +291,7 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
     reportBuilder$productivity_index$Watchlist[i] <- "Acceptable"
   }
 }
-
-###############################Anjelica FYTD performance calculations
-# Preprocessing Data ------------------------------------------------------
-#renaming columns
-rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:8],
-                      paste(reportBuilder[[4]][1, 9:ncol(reportBuilder[[4]])]))
-colnames(reportBuilder[[4]]) <- rb_fytd_colnames
-#removing empty column/row from exported format
-reportBuilder[[4]] <- reportBuilder[[4]] %>%
-  mutate(Metrics = NULL) %>%
-  slice(-1)
-
-# Calculations ------------------------------------------------------------
+#FYTD Calculations ------------------------------------------------------------
 reportBuilder[[4]] <- reportBuilder[[4]] %>%
   mutate(`Productivity Index FYTD` =
            (`Total Target Worked FTE - FYTD Avg` / `Actual Worked FTE - FYTD Avg`) * 100,
@@ -327,12 +300,10 @@ reportBuilder[[4]] <- reportBuilder[[4]] %>%
          `LE Index FYTD` =
            (`Target Labor Expense - FYTD Avg` / `Actual Labor Expense - FYTD Avg`) * 100)
 #####################################################################
+#Comparison Calculations
 
 
-
-#Calculate the rep period to FYTD comaparison
-FYTD_comparison <- reportBuilder[[3]][,5] - reportBuilder[[3]][,7]
-
+######################################################################
 #Turn productivity indexes into percentages
 reportBuilder$productivity_index[,3] <- 
   paste0(reportBuilder$productivity_index[,3],
@@ -359,8 +330,7 @@ breakdown_index <- cbind(breakdown_index[,1:ncol(breakdown_index)-1],
                          breakdown_index[,ncol(breakdown_index)],
                          Notes)
 
-output_site <- c("MSHS")
-# enter "MSHS" for all sites
+
 
 #breakdown_index$Hospital <- as.character(breakdown_index$Hospital)
 
