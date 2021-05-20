@@ -4,7 +4,7 @@ library(readxl)
 library(rlist)
 library(stringr)
 
-#---------------------Establish Constants
+#Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
 output_site <- c("MSHS")
 # enter "MSHS" for all sites
@@ -12,22 +12,13 @@ output_site <- c("MSHS")
 distribution <- "02/27/2021"
 previous_distribution <- "01/30/2021"
 
-#calculate date index for distribution and previous distribution
-for(i in 1:nrow(dates)){
-  if(dates[i,1] == distribution){
-    distribution_i <- i
-  } else if(dates[i,1] == previous_distribution){
-    previous_distribution_i <- i
-  }
-}
-
-#---------------------Read in files
+#Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
 #Read in end dates file for column headers
 dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                          "Productivity/Universal Mapping/",
+                          "Productivity/Universal Data/Mapping/",
                           "MSHS_Pay_Cycle.xlsx")) %>%
   select(END.DATE) %>%
   mutate(END.DATE = as.Date(END.DATE)) %>%
@@ -41,7 +32,7 @@ dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
 #Reporting definitions included in all hospital admin rollup reports
 definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "MSHS Productivity/Productivity/",
-                                "Universal Mapping/",
+                                "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
   filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
   select(SITE,DEFINITION.CODE,DEFINITION.NAME,KEY.VOLUME) %>%
@@ -93,7 +84,7 @@ reportBuilder[[4]] <- read.csv(paste0(dir_breakdown,
                                       "FYTD Performance.csv"),
                                as.is = T)
 
-#---------------------Format files
+#Format Files------------------------------------------------------------------
 #renaming columns
 rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:9],
                       paste(reportBuilder[[4]][1, 10:ncol(reportBuilder[[4]])]))
@@ -122,14 +113,23 @@ reportBuilder <- sapply(1:length(reportBuilder),
 names(reportBuilder) <- c("time_period_performance", "department_performance",
                           "productivity_index", "FYTD_performance")
 
-#---------------------Formatting and Calculations
-###Labor Standards###############################
+#Calculations------------------------------------------------------------------
+#calculate date index for distribution and previous distribution
+for(i in 1:nrow(dates)){
+  if(dates[i,1] == distribution){
+    distribution_i <- i
+  } else if(dates[i,1] == previous_distribution){
+    previous_distribution_i <- i
+  }
+}
+
+#Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
   select(Hospital.x, Code, Name, Key.Volume,
          EffDate, `Standard Type`, `Target WHpU`) %>%
-###Baseline_Performance##########################  
+#Baseline Time Period Performance----------------------------------------------  
   left_join(reportBuilder$time_period_performance, 
             by = c("Code" = "Department.Reporting.Definition.ID", 
                    "Key.Volume" = "Key.Volume")) 
@@ -166,7 +166,8 @@ breakdown_time_period <- breakdown_time_period %>%
   select(Hospital, Code, Name, Key.Volume, `Target WHpU`, `Worked FTE`, 
          Volume, `Productivity Index`, `OT%`, `LE Index`, EffDate, 
          `Standard Type`) %>%
-###Department_Performance#######################
+  
+#Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
   left_join(reportBuilder$department_performance,
             by = c("Code" = "Department.Reporting.Definition.ID",
@@ -259,7 +260,7 @@ breakdown_performance <- cbind(
   breakdown_performance[,1:12],
   list.cbind(variance))
 
-###Productivity_Index###########################
+#Watchlist Criteria------------------------------------------------------------
 #Select past 6 time period productivity index and calculate average
 Prod <- reportBuilder$productivity_index[,] %>%
   select(seq(from = ncol(reportBuilder$productivity_index) - 35, 
@@ -275,7 +276,9 @@ Var <- reportBuilder$productivity_index[,] %>%
 #bind 6 time period averages to productivity_index list element
 reportBuilder$productivity_index <- 
   cbind(
-    reportBuilder$productivity_index[,c(5,7,(ncol(reportBuilder$productivity_index) - 5):ncol(reportBuilder$productivity_index))], 
+    reportBuilder$productivity_index[
+      ,c(5,7,(ncol(reportBuilder$productivity_index) - 5):
+           ncol(reportBuilder$productivity_index))], 
     Prod[,7], 
     Var[,7])
 #logic for determining watchlist criteria
@@ -291,19 +294,19 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
     reportBuilder$productivity_index$Watchlist[i] <- "Acceptable"
   }
 }
+
 #FYTD Calculations ------------------------------------------------------------
 reportBuilder[[4]] <- reportBuilder[[4]] %>%
   mutate(`Productivity Index FYTD` =
-           (`Total Target Worked FTE - FYTD Avg` / `Actual Worked FTE - FYTD Avg`) * 100,
+           (`Total Target Worked FTE - FYTD Avg` / 
+              `Actual Worked FTE - FYTD Avg`) * 100,
          `OT % FYTD` =
-           (`Overtime Hours - FYTD Avg` / `Total Paid Hours - FYTD Avg`) * 100,
+           (`Overtime Hours - FYTD Avg` / 
+              `Total Paid Hours - FYTD Avg`) * 100,
          `LE Index FYTD` =
-           (`Target Labor Expense - FYTD Avg` / `Actual Labor Expense - FYTD Avg`) * 100)
-#####################################################################
-#Comparison Calculations
+           (`Target Labor Expense - FYTD Avg` / 
+              `Actual Labor Expense - FYTD Avg`) * 100)
 
-
-######################################################################
 #Turn productivity indexes into percentages
 reportBuilder$productivity_index[,3] <- 
   paste0(reportBuilder$productivity_index[,3],
@@ -314,34 +317,60 @@ reportBuilder$productivity_index[,5] <-
 reportBuilder$productivity_index[,7] <- 
   paste0(reportBuilder$productivity_index[,7],
          "%")
-rep_period_comparison <- paste0(round(rep_period_comparison*100,2),
-                                "%")
-reportBuilder[[3]]$FYTD_comparison <- paste0(round(FYTD_comparison,2),
-                                "%")
-Notes <- vector(mode="character", length=nrow(breakdown_performance))
-#join productivity index element to breakdown_performance
+#join producticity index report builder
 breakdown_index <- 
   left_join(breakdown_performance,
-            reportBuilder$productivity_index[,c(1,2,11,3:8,12)],
+            reportBuilder$productivity_index[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key.Volume" = "Key.Volume"))
+#select necessary columns
 breakdown_index <- cbind(breakdown_index[,1:ncol(breakdown_index)-1],
-                         rep_period_comparison,
-                         breakdown_index[,ncol(breakdown_index)],
-                         Notes)
+                         breakdown_index[,ncol(breakdown_index)])
+
+#Comparison Calculations-------------------------------------------------------
+breakdown_comparison <- breakdown_index %>%
+  left_join(reportBuilder$FYTD_performance,
+          by = c("Code" = "Department.Reporting.Definition.ID",
+                 "Key.Volume" = "Key.Volume")) 
+breakdown_comparison <- breakdown_comparison %>%
+  mutate(
+    #FTE Calculations
+    FTE_FYTD = variance[[distribution_i]][,1] - 
+      `Actual Worked FTE - FYTD Avg`,
+    FTE_RP = variance[[distribution_i]][,1] - 
+      variance[[previous_distribution_i]][,1],
+    #Volume Calculations
+    Vol_FYTD = variance[[distribution_i]][,1] - 
+      `Volume - FYTD Avg`,
+    Vol_RP = variance[[distribution_i]][,4] - 
+      variance[[previous_distribution_i]][,4],
+    #Productivity Index Calculations
+    PI_FYTD = variance[[distribution_i]][,6] - 
+      `Productivity Index FYTD`,
+    PI_RP = variance[[distribution_i]][,6] - 
+      variance[[previous_distribution_i]][,6],
+    #Overtime % Calculations
+    OT_FYTD = variance[[distribution_i]][,8] -
+      `OT % FYTD`,
+    OT_RP = variance[[distribution_i]][,8] - 
+      variance[[previous_distribution_i]][,8],
+    #Labor Expense Index Calculations
+    LE_FYTD = variance[[distribution_i]][,10] - 
+      `LE Index FYTD`,
+    LE_RP = variance[[distribution_i]][,10] - 
+      variance[[previous_distribution_i]][,10])
+#select necessary columns
+breakdown_comparison <- breakdown_comparison %>%
+  select(-(ncol(breakdown_comparison) - (26)):
+           -(ncol(breakdown_comparison) - (10)))
 
 
 
-#breakdown_index$Hospital <- as.character(breakdown_index$Hospital)
+#Auto Concatenation------------------------------------------------------------
 
-if("MSHS" %in% output_site){
-  output_index <- breakdown_index
-} else {
-  
-  output_index <- breakdown_index %>%
-    filter(Hospital %in% output_site
-    )
-}
+
+
+
 
 #assign column names for productivity index columns
 colnames(output_index)[(ncol(output_index)-8):ncol(output_index)] <- c(
@@ -355,11 +384,19 @@ colnames(output_index)[(ncol(output_index)-8):ncol(output_index)] <- c(
   "Productivity Index % Difference From FYTD",
   "Notes")
 
+#logic for determining what site(s) to output
+if("MSHS" %in% output_site){
+  output_index <- breakdown_index
+} else {
+  
+  output_index <- breakdown_index %>%
+    filter(Hospital %in% output_site
+    )
+}
+
+#format date for save file
 Date <- gsub("/","-",distribution)
-
-
-
-
+#save dataframe
 write.table(output_index,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
