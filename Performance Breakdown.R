@@ -163,9 +163,9 @@ breakdown_time_period <- breakdown_time_period %>%
          `OT%` = (`OT Hours`/`Paid Hours`) * 100,
          `LE Index` = (`Target LE`/LE) * 100) %>%
 #select necessary columns
-  select(Hospital, Code, Name, Key.Volume, `Target WHpU`, `Worked FTE`, 
-         Volume, `Productivity Index`, `OT%`, `LE Index`, EffDate, 
-         `Standard Type`) %>%
+  select(Hospital, Code, Name, Key.Volume, `Standard Type`, EffDate,
+         `Target WHpU`, `Target Worked FTE`, `Worked FTE`, Volume,
+         `Productivity Index`, `OT%`, `LE Index`) %>%
   
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
@@ -176,8 +176,8 @@ breakdown_time_period <- breakdown_time_period %>%
 dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
                   "Target Labor Expense", "Labor Expense")
 #Assign column names based on dates and data elements
-for(i in seq(from = 20, to = ncol(breakdown_time_period), by = 7)){
-  numbers <- seq(from = 20, to = ncol(breakdown_time_period), by = 7)
+for(i in seq(from = 21, to = ncol(breakdown_time_period), by = 7)){
+  numbers <- seq(from = 21, to = ncol(breakdown_time_period), by = 7)
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
@@ -193,25 +193,29 @@ for(i in seq(from = 20, to = ncol(breakdown_time_period), by = 7)){
 }
 #take necessary columns
 breakdown_performance <- 
-  breakdown_time_period[,c(1:12,20:ncol(breakdown_time_period))]
+  breakdown_time_period[,c(1:13,21:ncol(breakdown_time_period))]
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 13, to = ncol(breakdown_performance)-6, by = 7)
+index_sequence <- seq(from = 14, to = ncol(breakdown_performance)-6, by = 7)
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,5:10],
+    breakdown_performance[,7:13],
     breakdown_performance[,index_sequence[i]:(index_sequence[i]+6)])
 }
 #save column names in seperate list
 columns <- list()
 for(i in 1:length(variance)){
   columns[[i]] <- colnames(variance[[i]])
-  colnames(variance[[i]]) <- c("Target_WHpU", "Baseline_FTE", "Baseline_Vol", 
-                               "Baseline_PI", "Baseline_OT", "Baseline_LEI",
-                               "Target_FTE", "FTE", "Vol", "Paid_Hours", 
-                               "OT_Hours", "Target_LE", "LE")
+  colnames(variance[[i]]) <- c("Target_WHpU", "Baseline_Target_FTE",
+                               "Baseline_FTE", "Baseline_Vol", "Baseline_PI", 
+                               "Baseline_OT", "Baseline_LEI", "Target_FTE", 
+                               "FTE", "Vol", "Paid_Hours", "OT_Hours", 
+                               "Target_LE", "LE")
 }
+#calculate reporting period Target FTE difference to baseline Target FTE
+variance <- lapply(variance, transform, 
+                   Target_FTE_Var  = Target_FTE - Baseline_Target_FTE)
 #calculate reporting period FTE difference to baseline FTE
 variance <- lapply(variance, transform, 
                    FTE_Var  = FTE - Baseline_FTE)
@@ -241,12 +245,14 @@ variance <- lapply(variance, transform,
                    LE_Change = LE_Index - Baseline_LEI)
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
-  variance[[i]] <- variance[[i]][,c(8,14,15,9,16:22)]
+  variance[[i]] <- variance[[i]][,c(8,15,9,16,17,10,18:24)]
   colnames(variance[[i]]) <- c(
     columns[[i]][8],
+    paste0("*",dates[i,1], " Target FTE Difference"),
+    columns[[i]][9],
     paste0("*",dates[i,1], " FTE Difference"),
     paste0("*",dates[i,1], " FTE % Change"),
-    columns[[i]][9],
+    columns[[i]][10],
     paste0("*",dates[i,1], " Volume % Change"),
     paste0(dates[i,1], " Productivity Index"),
     paste0("*",dates[i,1], " PI Difference"),
@@ -257,7 +263,7 @@ for(i in 1:length(variance)){
 }
 #bind necessary columns from old breakdown_performance with variance list
 breakdown_performance <- cbind(
-  breakdown_performance[,1:12],
+  breakdown_performance[,1:13],
   list.cbind(variance))
 
 #Watchlist Criteria------------------------------------------------------------
