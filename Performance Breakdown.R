@@ -6,11 +6,15 @@ library(stringr)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
-output_site <- c("MSHS")
 # enter "MSHS" for all sites
+output_site <- c("MSHS")
 
-distribution <- "02/27/2021"
-previous_distribution <- "01/30/2021"
+#define current and previous distribution "mm/dd/yyyy"
+distribution <- "03/27/2021"
+previous_distribution <- "02/27/2021"
+
+#define percentage threshold for what is considered upward/downward change
+threshold <- 1.5
 
 #Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
@@ -51,6 +55,7 @@ colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
                               "KeyVol")
 #filter on key volume and turn effective date into date format
 laborStandards <- laborStandards %>% 
+  select(-16:-21) %>%
   filter(KeyVol == "Y") %>%
   mutate(EffDate = 
            paste0(
@@ -261,10 +266,15 @@ for(i in 1:length(variance)){
     paste0(dates[i,1], " LE Index"), 
     paste0("*",dates[i,1], " LE Index Difference"))
 }
-#bind necessary columns from old breakdown_performance with variance list
-breakdown_performance <- cbind(
+#bind columns from breakdown_performance with variance list to create appendix
+breakdown_performance_appendix <- cbind(
   breakdown_performance[,1:13],
   list.cbind(variance))
+#select only previous and current distribution for main deliverable
+breakdown_performance <- cbind(
+  breakdown_performance[,1:13],
+  variance[[previous_distribution_i]],
+  variance[[distribution_i]])
 
 #Watchlist Criteria------------------------------------------------------------
 #Select past 6 time period productivity index and calculate average
@@ -288,6 +298,7 @@ reportBuilder$productivity_index <-
     Prod[,7], 
     Var[,7])
 #logic for determining watchlist criteria
+reportBuilder$productivity_index$Watchlist <- NA
 for(i in 2:nrow(reportBuilder$productivity_index)){
   if(is.na(reportBuilder$productivity_index[i,9]) |
      is.na(reportBuilder$productivity_index[i,10])){
@@ -329,9 +340,6 @@ breakdown_index <-
             reportBuilder$productivity_index[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key.Volume" = "Key.Volume"))
-#select necessary columns
-breakdown_index <- cbind(breakdown_index[,1:ncol(breakdown_index)-1],
-                         breakdown_index[,ncol(breakdown_index)])
 
 #Comparison Calculations-------------------------------------------------------
 breakdown_comparison <- breakdown_index %>%
@@ -340,39 +348,83 @@ breakdown_comparison <- breakdown_index %>%
                  "Key.Volume" = "Key.Volume")) 
 breakdown_comparison <- breakdown_comparison %>%
   mutate(
-    #FTE Calculations
-    FTE_FYTD = variance[[distribution_i]][,1] - 
-      `Actual Worked FTE - FYTD Avg`,
-    FTE_RP = variance[[distribution_i]][,1] - 
+    #Target FTE Calculations
+    Target_FTE_FYTD = variance[[distribution_i]][,1] - 
+      `Total Target Worked FTE - FYTD Avg`,
+    Target_FTE_RP = variance[[distribution_i]][,1] - 
       variance[[previous_distribution_i]][,1],
+    #FTE Calculations
+    FTE_FYTD = variance[[distribution_i]][,3] -
+      `Actual Worked FTE - FYTD Avg`,
+    FTE_RP = variance[[distribution_i]][,3] -
+      variance[[previous_distribution_i]][,3],
     #Volume Calculations
-    Vol_FYTD = variance[[distribution_i]][,1] - 
+    Vol_FYTD = variance[[distribution_i]][,6] - 
       `Volume - FYTD Avg`,
-    Vol_RP = variance[[distribution_i]][,4] - 
-      variance[[previous_distribution_i]][,4],
-    #Productivity Index Calculations
-    PI_FYTD = variance[[distribution_i]][,6] - 
-      `Productivity Index FYTD`,
-    PI_RP = variance[[distribution_i]][,6] - 
+    Vol_RP = variance[[distribution_i]][,6] - 
       variance[[previous_distribution_i]][,6],
-    #Overtime % Calculations
-    OT_FYTD = variance[[distribution_i]][,8] -
-      `OT % FYTD`,
-    OT_RP = variance[[distribution_i]][,8] - 
+    #Productivity Index Calculations
+    PI_FYTD = variance[[distribution_i]][,8] - 
+      `Productivity Index FYTD`,
+    PI_RP = variance[[distribution_i]][,8] - 
       variance[[previous_distribution_i]][,8],
+    #Overtime % Calculations
+    OT_FYTD = variance[[distribution_i]][,10] -
+      `OT % FYTD`,
+    OT_RP = variance[[distribution_i]][,10] - 
+      variance[[previous_distribution_i]][,10],
     #Labor Expense Index Calculations
-    LE_FYTD = variance[[distribution_i]][,10] - 
+    LE_FYTD = variance[[distribution_i]][,12] - 
       `LE Index FYTD`,
-    LE_RP = variance[[distribution_i]][,10] - 
-      variance[[previous_distribution_i]][,10])
+    LE_RP = variance[[distribution_i]][,12] - 
+      variance[[previous_distribution_i]][,12])
 #select necessary columns
 breakdown_comparison <- breakdown_comparison %>%
-  select(-(ncol(breakdown_comparison) - (26)):
-           -(ncol(breakdown_comparison) - (10)))
-
-
+  select(-(ncol(breakdown_comparison) - (28)):
+           -(ncol(breakdown_comparison) - (12)))
 
 #Auto Concatenation------------------------------------------------------------
+breakdown_text <- breakdown_comparison %>% 
+  mutate(VCPn = round((Vol_RP / breakdown_comparison[,19]) * 100, 2),
+         WFTECPn = round((FTE_RP / breakdown_comparison[,16]) * 100, 2)) %>%
+  mutate(
+    VCPn_direction = case_when(
+      (VCPn > threshold) ~ "up",
+      (VCPn < -threshold) ~ "down",
+      (is.na(VCPn)) ~ "unavailable",
+      TRUE ~ "steady"),
+    WFTECPn_direction = case_when(
+      (WFTECPn > threshold) ~ "up",
+      (WFTECPn < -threshold) ~ "down",
+      (is.na(WFTECPn)) ~ "unavailable",
+      TRUE ~ "steady")) %>%
+  mutate(
+    VCP_text = case_when(
+      (VCPn_direction == "steady") ~ 
+        paste0("Reporting Period volume is steady compared to the previous",
+               "reporting period"),
+      (VCPn_direction == "unavailable") ~ 
+        paste0("Reporting Period volume is unavailable"),
+      TRUE ~ 
+        paste0("Reporting Period volume is ", VCPn_direction, " ", VCPn,
+               "% compared to the previous reporting period")
+    ),
+    WFTECP_text = case_when(
+      (WFTECPn_direction == "steady") ~ 
+        paste0("Reporting Period FTEs are steady compared to the previous",
+               "reporting period"),
+      (WFTECPn_direction == "unavailable") ~ 
+        paste0("Reporting Period FTEs are unavailable"),
+      TRUE ~ paste0("Reporting Period FTEs are ", WFTECPn_direction, " ",
+                    WFTECPn, "% compared to the previous reporting period"))
+    ) %>%
+  mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text),
+         VCPn = NULL,
+         VCP_text = NULL,
+         VCPn_direction = NULL,
+         WFTECPn = NULL,
+         WFTECP_text = NULL,
+         WFTECPn_direction = NULL)
 
 
 
