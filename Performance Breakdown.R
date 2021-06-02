@@ -385,9 +385,11 @@ breakdown_comparison <- breakdown_comparison %>%
 
 #Auto Concatenation------------------------------------------------------------
 breakdown_text <- breakdown_comparison %>% 
+  #Calculate % change for volume and worked fte
   mutate(VCPn = round((Vol_RP / breakdown_comparison[,19]) * 100, 2),
          WFTECPn = round((FTE_RP / breakdown_comparison[,16]) * 100, 2)) %>%
   mutate(
+    #determine direction of change
     VCPn_direction = case_when(
       (VCPn > threshold) ~ "up",
       (VCPn < -threshold) ~ "down",
@@ -399,6 +401,7 @@ breakdown_text <- breakdown_comparison %>%
       (is.na(WFTECPn)) ~ "unavailable",
       TRUE ~ "steady")) %>%
   mutate(
+    #determine text based on direction of change
     VCP_text = case_when(
       (VCPn_direction == "steady") ~ 
         paste0("Reporting Period volume is steady compared to the previous",
@@ -418,40 +421,48 @@ breakdown_text <- breakdown_comparison %>%
       TRUE ~ paste0("Reporting Period FTEs are ", WFTECPn_direction, " ",
                     WFTECPn, "% compared to the previous reporting period"))
     ) %>%
-  mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text),
-         VCPn = NULL,
-         VCP_text = NULL,
-         VCPn_direction = NULL,
-         WFTECPn = NULL,
-         WFTECP_text = NULL,
-         WFTECPn_direction = NULL)
+  #concatenate text columns and delete helper columns
+  mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text)) %>%
+  select(-c(VCPn, WFTECPn, VCPn_direction, WFTECPn_direction, VCP_text, 
+            WFTECP_text))
 
-
-
-
-
-#assign column names for productivity index columns
-colnames(output_index)[(ncol(output_index)-8):ncol(output_index)] <- c(
-  "Productivity Index",
-  "FTE Variance",
-  "Productivity Index",
-  "FTE Variance",
-  "Productivity Index",
-  "FTE Variance",
-  "Productivity Index % Difference From Previous Distribution Period",
-  "Productivity Index % Difference From FYTD",
-  "Notes")
+#assign an empty vector to notes and bind it to the df
+Notes <- vector(mode="character", length = nrow(breakdown_text))
+breakdown_text <- cbind(breakdown_text, Notes)
 
 #logic for determining what site(s) to output
 if("MSHS" %in% output_site){
-  output_index <- breakdown_index
+  output_index <- breakdown_text
 } else {
-  
-  output_index <- breakdown_index %>%
-    filter(Hospital %in% output_site
-    )
+  output_index <- breakdown_text %>%
+    filter(Hospital %in% output_site)
 }
 
+#assign column names for productivity index columns
+colnames(output_index)[(ncol(output_index)-19):ncol(output_index)] <- c(
+  "Productivity Index",
+  "FTE Variance",
+  "Productivity Index",
+  "FTE Variance",
+  "Productivity Index",
+  "FTE Variance",
+  "Target FTE Difference from FYTD",
+  "Target FTE Difference from Previous Distribution Period",
+  "FTE Difference from FYTD",
+  "FTE Difference from Previous Distribution Period",
+  "Volume Difference from FYTD",
+  "Volume Difference from Previous Distribution Period",
+  "Productivity Index % Difference From FYTD",
+  "Productivity Index % Difference From Previous Distribution Period",
+  "Overtime % Difference From FYTD",
+  "Overtime % Difference From Previous Distribution Period",
+  "Labor Expense Index % Difference From FYTD",
+  "Labor Expense Index % Difference From Previous Distribution Period",
+  "Volume & Labor Trend",
+  "Notes")
+
+#sub NA for the watchlist colunn
+output_index$Watchlist <- NA
 #format date for save file
 Date <- gsub("/","-",distribution)
 #save dataframe
