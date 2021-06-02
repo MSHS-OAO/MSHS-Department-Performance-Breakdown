@@ -463,6 +463,12 @@ colnames(output_index)[(ncol(output_index)-19):ncol(output_index)] <- c(
 
 #sub NA for the watchlist colunn
 output_index$Watchlist <- NA
+
+#VP Roll-Up--------------------------------------------------------------------
+
+
+
+
 #format date for save file
 Date <- gsub("/","-",distribution)
 #save dataframe
