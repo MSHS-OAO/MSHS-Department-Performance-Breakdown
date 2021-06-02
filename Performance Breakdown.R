@@ -39,9 +39,9 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
   filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
-  select(SITE,DEFINITION.CODE,DEFINITION.NAME,KEY.VOLUME) %>%
+  select(SITE, VP, DEFINITION.CODE, DEFINITION.NAME, KEY.VOLUME) %>%
   distinct()
-colnames(definitions) <- c("Hospital", "Code", "Name", "Key.Volume")
+colnames(definitions) <- c("Hospital", "VP", "Code", "Name", "Key.Volume")
 
 #labor standards for target information
 laborStandards <- read.csv(paste0(dir_breakdown,
@@ -132,7 +132,7 @@ for(i in 1:nrow(dates)){
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
-  select(Hospital.x, Code, Name, Key.Volume,
+  select(Hospital.x, VP, Code, Name, Key.Volume,
          EffDate, `Standard Type`, `Target WHpU`) %>%
 #Baseline Time Period Performance----------------------------------------------  
   left_join(reportBuilder$time_period_performance, 
@@ -140,11 +140,11 @@ breakdown_targets <-
                    "Key.Volume" = "Key.Volume")) 
 #take necessary columns
 breakdown_targets <- 
-  as.data.frame(breakdown_targets[,c(1:7,15:ncol(breakdown_targets))])
+  as.data.frame(breakdown_targets[,c(1:8,16:ncol(breakdown_targets))])
 #create list for time period averages
 time_period <- list()
 #place 26 time periods of each metric into each list object. 7 list objects
-cadence <- seq(from = 8, to = ncol(breakdown_targets), by = 7)
+cadence <- seq(from = 9, to = ncol(breakdown_targets), by = 7)
 for(i in 0:6){
   time_period[[i+1]] <- breakdown_targets[,cadence + i]
 }
@@ -154,11 +154,11 @@ time_period <- lapply(time_period, function(x) {
     mutate(Avg = rowMeans(x, na.rm = T))})
 #cbind metric averages
 breakdown_time_period <- cbind(
-  breakdown_targets[,1:7], time_period[[1]][,27], time_period[[2]][,27],
+  breakdown_targets[,1:8], time_period[[1]][,27], time_period[[2]][,27],
   time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
   time_period[[6]][,27], time_period[[7]][,27])
 #Assign column names
-colnames(breakdown_time_period)[c(1,8:14)] <- c("Hospital", "Target Worked FTE", 
+colnames(breakdown_time_period)[c(1,9:15)] <- c("Hospital", "Target Worked FTE", 
                                              "Worked FTE", "Volume", 
                                              "Paid Hours", "OT Hours", 
                                              "Target LE", "LE")
@@ -168,7 +168,7 @@ breakdown_time_period <- breakdown_time_period %>%
          `OT%` = (`OT Hours`/`Paid Hours`) * 100,
          `LE Index` = (`Target LE`/LE) * 100) %>%
 #select necessary columns
-  select(Hospital, Code, Name, Key.Volume, `Standard Type`, EffDate,
+  select(Hospital, VP, Code, Name, Key.Volume, `Standard Type`, EffDate,
          `Target WHpU`, `Target Worked FTE`, `Worked FTE`, Volume,
          `Productivity Index`, `OT%`, `LE Index`) %>%
   
@@ -181,8 +181,8 @@ breakdown_time_period <- breakdown_time_period %>%
 dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
                   "Target Labor Expense", "Labor Expense")
 #Assign column names based on dates and data elements
-for(i in seq(from = 21, to = ncol(breakdown_time_period), by = 7)){
-  numbers <- seq(from = 21, to = ncol(breakdown_time_period), by = 7)
+for(i in seq(from = 22, to = ncol(breakdown_time_period), by = 7)){
+  numbers <- seq(from = 22, to = ncol(breakdown_time_period), by = 7)
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
@@ -198,14 +198,14 @@ for(i in seq(from = 21, to = ncol(breakdown_time_period), by = 7)){
 }
 #take necessary columns
 breakdown_performance <- 
-  breakdown_time_period[,c(1:13,21:ncol(breakdown_time_period))]
+  breakdown_time_period[,c(1:14,22:ncol(breakdown_time_period))]
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 14, to = ncol(breakdown_performance)-6, by = 7)
+index_sequence <- seq(from = 15, to = ncol(breakdown_performance)-6, by = 7)
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,7:13],
+    breakdown_performance[,8:14],
     breakdown_performance[,index_sequence[i]:(index_sequence[i]+6)])
 }
 #save column names in seperate list
@@ -268,11 +268,11 @@ for(i in 1:length(variance)){
 }
 #bind columns from breakdown_performance with variance list to create appendix
 breakdown_performance_appendix <- cbind(
-  breakdown_performance[,1:13],
+  breakdown_performance[,1:14],
   list.cbind(variance))
 #select only previous and current distribution for main deliverable
 breakdown_performance <- cbind(
-  breakdown_performance[,1:13],
+  breakdown_performance[,1:14],
   variance[[previous_distribution_i]],
   variance[[distribution_i]])
 
