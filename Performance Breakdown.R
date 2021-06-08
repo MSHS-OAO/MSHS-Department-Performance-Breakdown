@@ -3,6 +3,7 @@ library(tidyr)
 library(readxl)
 library(rlist)
 library(stringr)
+library(here)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
@@ -430,16 +431,8 @@ breakdown_text <- breakdown_comparison %>%
 Notes <- vector(mode="character", length = nrow(breakdown_text))
 breakdown_text <- cbind(breakdown_text, Notes)
 
-#logic for determining what site(s) to output
-if("MSHS" %in% output_site){
-  output_index <- breakdown_text
-} else {
-  output_index <- breakdown_text %>%
-    filter(Hospital %in% output_site)
-}
-
 #assign column names for productivity index columns
-colnames(output_index)[(ncol(output_index)-19):ncol(output_index)] <- c(
+colnames(breakdown_text)[(ncol(breakdown_text)-19):ncol(breakdown_text)] <- c(
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
@@ -462,12 +455,24 @@ colnames(output_index)[(ncol(output_index)-19):ncol(output_index)] <- c(
   "Notes")
 
 #sub NA for the watchlist colunn
-output_index$Watchlist <- NA
+breakdown_text$Watchlist <- NA
 
 #VP Roll-Up--------------------------------------------------------------------
+source(paste0(here(),"/VP_Roll_Up.R"))
 
-
-
+#logic for determining what site(s) to output
+if("MSHS" %in% output_site){
+  output_index <- breakdown_text
+  output_appendix <- breakdown_performance_appendix
+  output_VP_roll <- VP_roll_comparison_calc
+} else {
+  output_index <- breakdown_text %>%
+    filter(Hospital %in% output_site)
+  output_VP_roll <- VP_roll_comparison_calc %>%
+    filter(Hospital %in% output_site)
+  output_appendix <- breakdown_performance_appendix %>%
+    filter(Hospital %in% output_site)
+}
 
 #format date for save file
 Date <- gsub("/","-",distribution)
