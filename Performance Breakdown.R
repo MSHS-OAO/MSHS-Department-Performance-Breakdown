@@ -8,7 +8,7 @@ library(here)
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
 # enter "MSHS" for all sites
-output_site <- c("MSH")
+output_site <- c("MSHS")
 
 #define current and previous distribution "mm/dd/yyyy"
 distribution <- "03/27/2021"
