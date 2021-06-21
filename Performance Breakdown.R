@@ -152,7 +152,7 @@ for(i in 0:6){
 #calculate 26 time period avg for each metric
 time_period <- lapply(time_period, function(x) {
   data.frame(x) %>%
-    mutate(Avg = rowMeans(x, na.rm = T))})
+    mutate(Avg = round(rowMeans(x, na.rm = T), digits = 4))})
 #cbind metric averages
 breakdown_time_period <- cbind(
   breakdown_targets[,1:8], time_period[[1]][,27], time_period[[2]][,27],
@@ -168,10 +168,12 @@ breakdown_time_period <- breakdown_time_period %>%
   mutate(`Productivity Index` = (`Target Worked FTE`/`Worked FTE`) * 100,
          `OT%` = (`OT Hours`/`Paid Hours`) * 100,
          `LE Index` = (`Target LE`/LE) * 100) %>%
+  mutate(`FTE Variance` = `Worked FTE` - `Target Worked FTE`,
+         .after = `Worked FTE`) %>%
 #select necessary columns
   select(Hospital, VP, Code, Name, Key.Volume, `Standard Type`, EffDate,
-         `Target WHpU`, `Target Worked FTE`, `Worked FTE`, Volume,
-         `Productivity Index`, `OT%`, `LE Index`) %>%
+         `Target WHpU`, `Target Worked FTE`, `Worked FTE`, `FTE Variance`,
+         Volume, `Productivity Index`, `OT%`, `LE Index`) %>%
   
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
@@ -182,8 +184,8 @@ breakdown_time_period <- breakdown_time_period %>%
 dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
                   "Target Labor Expense", "Labor Expense")
 #Assign column names based on dates and data elements
-for(i in seq(from = 22, to = ncol(breakdown_time_period), by = 7)){
-  numbers <- seq(from = 22, to = ncol(breakdown_time_period), by = 7)
+for(i in seq(from = 23, to = ncol(breakdown_time_period), by = 7)){
+  numbers <- seq(from = 23, to = ncol(breakdown_time_period), by = 7)
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
@@ -199,14 +201,14 @@ for(i in seq(from = 22, to = ncol(breakdown_time_period), by = 7)){
 }
 #take necessary columns
 breakdown_performance <- 
-  breakdown_time_period[,c(1:14,22:ncol(breakdown_time_period))]
+  breakdown_time_period[,c(1:15,23:ncol(breakdown_time_period))]
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 15, to = ncol(breakdown_performance)-6, by = 7)
+index_sequence <- seq(from = 16, to = ncol(breakdown_performance)-6, by = 7)
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,8:14],
+    breakdown_performance[,8:15],
     breakdown_performance[,index_sequence[i]:(index_sequence[i]+6)])
 }
 #save column names in seperate list
@@ -214,66 +216,71 @@ columns <- list()
 for(i in 1:length(variance)){
   columns[[i]] <- colnames(variance[[i]])
   colnames(variance[[i]]) <- c("Target_WHpU", "Baseline_Target_FTE",
-                               "Baseline_FTE", "Baseline_Vol", "Baseline_PI", 
-                               "Baseline_OT", "Baseline_LEI", "Target_FTE", 
-                               "FTE", "Vol", "Paid_Hours", "OT_Hours", 
-                               "Target_LE", "LE")
+                               "Baseline_FTE", "Baselint_FTE_Var",
+                               "Baseline_Vol", "Baseline_PI", "Baseline_OT",
+                               "Baseline_LEI", "Target_FTE","FTE", "Vol",
+                               "Paid_Hours", "OT_Hours", "Target_LE", "LE")
 }
 #calculate reporting period Target FTE difference to baseline Target FTE
 variance <- lapply(variance, transform, 
-                   Target_FTE_Var  = Target_FTE - Baseline_Target_FTE)
-#calculate reporting period FTE difference to baseline FTE
-variance <- lapply(variance, transform, 
-                   FTE_Var  = FTE - Baseline_FTE)
-#calculate FTE % change to baseline FTE
-variance <- lapply(variance, transform, 
-                   Var_Percent = FTE_Var/Baseline_FTE * 100)
-#calculate reporting period volume % change to baseline volume
-variance <- lapply(variance, transform, 
-                   Vol_Percent = (((Vol - Baseline_Vol)/Baseline_Vol) * 100))
+                   FTE_Variance  = FTE - Target_FTE)
+# #calculate reporting period Target FTE difference to baseline Target FTE
+# variance <- lapply(variance, transform, 
+#                    Target_FTE_Var  = Target_FTE - Baseline_Target_FTE)
+# #calculate reporting period FTE difference to baseline FTE
+# variance <- lapply(variance, transform, 
+#                    FTE_Var  = FTE - Baseline_FTE)
+# #calculate FTE % change to baseline FTE
+# variance <- lapply(variance, transform, 
+#                    Var_Percent = FTE_Var/Baseline_FTE * 100)
+# #calculate reporting period volume % change to baseline volume
+# variance <- lapply(variance, transform, 
+#                    Vol_Percent = (((Vol - Baseline_Vol)/Baseline_Vol) * 100))
 #calculate reporting period PI
 variance <- lapply(variance, transform,
                    PI = Target_FTE/FTE * 100)
-#calculate reporting period PI difference to baseline PI
-variance <- lapply(variance, transform,
-                   PI_Change = PI - Baseline_PI)
+# #calculate reporting period PI difference to baseline PI
+# variance <- lapply(variance, transform,
+#                    PI_Change = PI - Baseline_PI)
 #calculate reporting period OT%
 variance <- lapply(variance, transform,
                    OT = OT_Hours/Paid_Hours * 100)
-#calculate reporting period OT% difference to baseline OT%
-variance <- lapply(variance, transform,
-                   OT_Change = OT - Baseline_OT)
+# #calculate reporting period OT% difference to baseline OT%
+# variance <- lapply(variance, transform,
+#                    OT_Change = OT - Baseline_OT)
 #calculate reporting period LE Index
 variance <- lapply(variance, transform,
                    LE_Index = Target_LE/LE * 100)
-#calculate reporting period LE index difference to baseline LE index
-variance <- lapply(variance, transform,
-                   LE_Change = LE_Index - Baseline_LEI)
+# #calculate reporting period LE index difference to baseline LE index
+# variance <- lapply(variance, transform,
+#                    LE_Change = LE_Index - Baseline_LEI)
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
-  variance[[i]] <- variance[[i]][,c(8,15,9,16,17,10,18:24)]
+  variance[[i]] <- variance[[i]][,c(9,10,16,11,17,18,19)]
   colnames(variance[[i]]) <- c(
-    columns[[i]][8],
-    paste0("*",dates[i,1], " Target FTE Difference"),
     columns[[i]][9],
-    paste0("*",dates[i,1], " FTE Difference"),
-    paste0("*",dates[i,1], " FTE % Change"),
+    # paste0("*",dates[i,1], " Target FTE Difference"),
     columns[[i]][10],
-    paste0("*",dates[i,1], " Volume % Change"),
+    # paste0("*",dates[i,1], " FTE Difference"),
+    # paste0("*",dates[i,1], " FTE % Change"),
+    paste0(dates[i,1], "FTE Variance"),
+    columns[[i]][11],
+    # paste0("*",dates[i,1], " Volume % Change"),
     paste0(dates[i,1], " Productivity Index"),
-    paste0("*",dates[i,1], " PI Difference"),
+    # paste0("*",dates[i,1], " PI Difference"),
     paste0(dates[i,1], " Overtime %"),
-    paste0("*",dates[i,1], " OT Difference"),
-    paste0(dates[i,1], " LE Index"), 
-    paste0("*",dates[i,1], " LE Index Difference"))
+    # paste0("*",dates[i,1], " OT Difference"),
+    paste0(dates[i,1], " LE Index") 
+    # paste0("*",dates[i,1], " LE Index Difference")
+    )
 }
 #bind columns from breakdown_performance with variance list to create appendix
 breakdown_performance_appendix <- cbind(
-  breakdown_performance[,1:14],
+  breakdown_performance[,1:15],
   list.cbind(variance))
 #select only previous and current distribution for main deliverable
 breakdown_performance <- cbind(
-  breakdown_performance[,1:14],
+  breakdown_performance[,1:15],
   variance[[previous_distribution_i]],
   variance[[distribution_i]])
 
@@ -315,7 +322,10 @@ for(i in 2:nrow(reportBuilder$productivity_index)){
 
 #FYTD Calculations ------------------------------------------------------------
 reportBuilder[[4]] <- reportBuilder[[4]] %>%
-  mutate(`Productivity Index FYTD` =
+  mutate(`FTE Variance FYTD` =
+           (`Actual Worked FTE - FYTD Avg` - 
+              `Total Target Worked FTE - FYTD Avg`),
+         `Productivity Index FYTD` =
            (`Total Target Worked FTE - FYTD Avg` / 
               `Actual Worked FTE - FYTD Avg`) * 100,
          `OT % FYTD` =
@@ -355,40 +365,44 @@ breakdown_comparison <- breakdown_comparison %>%
     Target_FTE_RP = variance[[distribution_i]][,1] - 
       variance[[previous_distribution_i]][,1],
     #FTE Calculations
-    FTE_FYTD = variance[[distribution_i]][,3] -
+    FTE_FYTD = variance[[distribution_i]][,2] -
       `Actual Worked FTE - FYTD Avg`,
-    FTE_RP = variance[[distribution_i]][,3] -
+    FTE_RP = variance[[distribution_i]][,2] -
+      variance[[previous_distribution_i]][,2],
+    #FTE Variance Calculations
+    FTE_Var_FYTD = variance[[distribution_i]][,3] -
+      `Actual Worked FTE - FYTD Avg`,
+    FTE_Var_RP = variance[[distribution_i]][,3] -
       variance[[previous_distribution_i]][,3],
     #Volume Calculations
-    Vol_FYTD = variance[[distribution_i]][,6] - 
+    Vol_FYTD = variance[[distribution_i]][,4] - 
       `Volume - FYTD Avg`,
-    Vol_RP = variance[[distribution_i]][,6] - 
-      variance[[previous_distribution_i]][,6],
+    Vol_RP = variance[[distribution_i]][,4] - 
+      variance[[previous_distribution_i]][,4],
     #Productivity Index Calculations
-    PI_FYTD = variance[[distribution_i]][,8] - 
+    PI_FYTD = variance[[distribution_i]][,5] - 
       `Productivity Index FYTD`,
-    PI_RP = variance[[distribution_i]][,8] - 
-      variance[[previous_distribution_i]][,8],
+    PI_RP = variance[[distribution_i]][,5] - 
+      variance[[previous_distribution_i]][,5],
     #Overtime % Calculations
-    OT_FYTD = variance[[distribution_i]][,10] -
+    OT_FYTD = variance[[distribution_i]][,6] -
       `OT % FYTD`,
-    OT_RP = variance[[distribution_i]][,10] - 
-      variance[[previous_distribution_i]][,10],
+    OT_RP = variance[[distribution_i]][,6] - 
+      variance[[previous_distribution_i]][,6],
     #Labor Expense Index Calculations
-    LE_FYTD = variance[[distribution_i]][,12] - 
+    LE_FYTD = variance[[distribution_i]][,7] - 
       `LE Index FYTD`,
-    LE_RP = variance[[distribution_i]][,12] - 
-      variance[[previous_distribution_i]][,12])
+    LE_RP = variance[[distribution_i]][,7] - 
+      variance[[previous_distribution_i]][,7])
 #select necessary columns
 breakdown_comparison <- breakdown_comparison %>%
-  select(-(ncol(breakdown_comparison) - (28)):
-           -(ncol(breakdown_comparison) - (12)))
+  select(c(1:36,55:ncol(breakdown_comparison)))
 
 #Auto Concatenation------------------------------------------------------------
 breakdown_text <- breakdown_comparison %>% 
   #Calculate % change for volume and worked fte
   mutate(VCPn = round((Vol_RP / breakdown_comparison[,19]) * 100, 2),
-         WFTECPn = round((FTE_RP / breakdown_comparison[,16]) * 100, 2)) %>%
+         WFTECPn = round((FTE_RP / breakdown_comparison[,17]) * 100, 2)) %>%
   mutate(
     #determine direction of change
     VCPn_direction = case_when(
