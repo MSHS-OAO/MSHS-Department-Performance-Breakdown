@@ -42,7 +42,7 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
   filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
   select(SITE, VP, DEFINITION.CODE, DEFINITION.NAME, KEY.VOLUME) %>%
   distinct()
-colnames(definitions) <- c("Hospital", "VP", "Code", "Name", "Key.Volume")
+colnames(definitions) <- c("Hospital", "VP", "Code", "Name", "Key Volume")
 
 #labor standards for target information
 laborStandards <- read.csv(paste0(dir_breakdown,
@@ -133,12 +133,12 @@ for(i in 1:nrow(dates)){
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
-  select(Hospital.x, VP, Code, Name, Key.Volume,
+  select(Hospital.x, VP, Code, Name, `Key Volume`,
          EffDate, `Standard Type`, `Target WHpU`) %>%
 #Baseline Time Period Performance----------------------------------------------  
   left_join(reportBuilder$time_period_performance, 
             by = c("Code" = "Department.Reporting.Definition.ID", 
-                   "Key.Volume" = "Key.Volume")) 
+                   "Key Volume" = "Key.Volume")) 
 #take necessary columns
 breakdown_targets <- 
   as.data.frame(breakdown_targets[,c(1:8,16:ncol(breakdown_targets))])
@@ -159,10 +159,11 @@ breakdown_time_period <- cbind(
   time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
   time_period[[6]][,27], time_period[[7]][,27])
 #Assign column names
-colnames(breakdown_time_period)[c(1,9:15)] <- c("Hospital", "Target Worked FTE", 
-                                             "Worked FTE", "Volume", 
-                                             "Paid Hours", "OT Hours", 
-                                             "Target LE", "LE")
+colnames(breakdown_time_period)[c(1,5,9:15)] <- c("Hospital", "Key Volume",
+                                                  "Target Worked FTE", 
+                                                  "Worked FTE", "Volume",
+                                                  "Paid Hours", "OT Hours", 
+                                                  "Target LE", "LE")
 #calculate PI, OT% and LE Index
 breakdown_time_period <- breakdown_time_period %>%
   mutate(`Productivity Index` = (`Target Worked FTE`/`Worked FTE`) * 100,
@@ -171,7 +172,7 @@ breakdown_time_period <- breakdown_time_period %>%
   mutate(`FTE Variance` = `Worked FTE` - `Target Worked FTE`,
          .after = `Worked FTE`) %>%
 #select necessary columns
-  select(Hospital, VP, Code, Name, Key.Volume, `Standard Type`, EffDate,
+  select(Hospital, VP, Code, Name, `Key Volume`, `Standard Type`, EffDate,
          `Target WHpU`, `Target Worked FTE`, `Worked FTE`, `FTE Variance`,
          Volume, `Productivity Index`, `OT%`, `LE Index`) %>%
   
@@ -179,7 +180,7 @@ breakdown_time_period <- breakdown_time_period %>%
   #join reporting period performance table
   left_join(reportBuilder$department_performance,
             by = c("Code" = "Department.Reporting.Definition.ID",
-                   "Key.Volume" = "Key.Volume"))
+                   "Key Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
 dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
                   "Target Labor Expense", "Labor Expense")
@@ -350,13 +351,13 @@ breakdown_index <-
   left_join(breakdown_performance,
             reportBuilder$productivity_index[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key.Volume" = "Key.Volume"))
+                 "Key Volume" = "Key.Volume"))
 
 #Comparison Calculations-------------------------------------------------------
 breakdown_comparison <- breakdown_index %>%
   left_join(reportBuilder$FYTD_performance,
           by = c("Code" = "Department.Reporting.Definition.ID",
-                 "Key.Volume" = "Key.Volume")) 
+                 "Key Volume" = "Key.Volume")) 
 breakdown_comparison <- breakdown_comparison %>%
   mutate(
     #Target FTE Calculations
@@ -446,7 +447,7 @@ Notes <- vector(mode="character", length = nrow(breakdown_text))
 breakdown_text <- cbind(breakdown_text, Notes)
 
 #assign column names for productivity index columns
-colnames(breakdown_text)[(ncol(breakdown_text)-19):ncol(breakdown_text)] <- c(
+colnames(breakdown_text)[(ncol(breakdown_text)-21):ncol(breakdown_text)] <- c(
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
@@ -457,6 +458,8 @@ colnames(breakdown_text)[(ncol(breakdown_text)-19):ncol(breakdown_text)] <- c(
   "Target FTE Difference from Previous Distribution Period",
   "FTE Difference from FYTD",
   "FTE Difference from Previous Distribution Period",
+  "FTE Variance Difference from FYTD",
+  "FTE Variance Difference from Previous Distribution Period",
   "Volume Difference from FYTD",
   "Volume Difference from Previous Distribution Period",
   "Productivity Index % Difference From FYTD",
