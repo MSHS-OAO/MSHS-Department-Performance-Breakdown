@@ -11,8 +11,8 @@ library(here)
 output_site <- c("MSHS")
 
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "03/27/2021"
-previous_distribution <- "02/27/2021"
+distribution <- "04/24/2021"
+previous_distribution <- "03/27/2021"
 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -477,6 +477,11 @@ breakdown_text$Watchlist <- NA
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/VP_Roll_Up.R"))
 
+#Formatting--------------------------------------------------------------------
+source(paste0(here(),"/Formatting.R"))
+
+
+
 #logic for determining what site(s) to output
 if("MSHS" %in% output_site){
   output_index <- breakdown_text
@@ -498,6 +503,6 @@ write.table(output_index,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/",
-                   "MSHS_Department Performance Breakdown_",
-                   Date, "_", paste(output_site, collapse = " & "), ".csv"), 
+                   paste(output_site, collapse = " & "), 
+                   "_Department Performance Breakdown_", Date, ".csv"), 
             row.names = F, sep = ",")
