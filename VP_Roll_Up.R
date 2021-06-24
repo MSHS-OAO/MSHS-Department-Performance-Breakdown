@@ -141,7 +141,7 @@ Notes <- vector(mode="character", length = nrow(VP_roll_comparison_calc))
 VP_roll_comparison_calc <- cbind(VP_roll_comparison_calc, Notes)
 
 #fix column names
-colnames(VP_roll_comparison_calc)[8:32] <- 
+colnames(VP_roll_comparison_calc)[9:33] <- 
   c(#previous distribution-----------------------------------------------------
     paste(dates[previous_distribution_i,1],dataElements[1]),
     # paste0("*",dates[previous_distribution_i,1], " Target FTE Difference"),
