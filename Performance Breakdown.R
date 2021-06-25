@@ -421,9 +421,9 @@ breakdown_text <- breakdown_comparison %>%
     VCP_text = case_when(
       (VCPn_direction == "steady") ~ 
         paste0("Reporting Period volume is steady compared to the previous",
-               "reporting period"),
+               " reporting period"),
       (VCPn_direction == "unavailable") ~ 
-        paste0("Reporting Period volume is unavailable"),
+        paste0("Reporting Period volume % change is unavailable"),
       TRUE ~ 
         paste0("Reporting Period volume is ", VCPn_direction, " ", VCPn,
                "% compared to the previous reporting period")
@@ -431,7 +431,7 @@ breakdown_text <- breakdown_comparison %>%
     WFTECP_text = case_when(
       (WFTECPn_direction == "steady") ~ 
         paste0("Reporting Period FTEs are steady compared to the previous",
-               "reporting period"),
+               " reporting period"),
       (WFTECPn_direction == "unavailable") ~ 
         paste0("Reporting Period FTEs are unavailable"),
       TRUE ~ paste0("Reporting Period FTEs are ", WFTECPn_direction, " ",
