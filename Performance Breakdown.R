@@ -498,11 +498,30 @@ if("MSHS" %in% output_site){
 
 #format date for save file
 Date <- gsub("/","-",distribution)
-#save dataframe
+
+#save breakdown
 write.table(output_index,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/",
+                   "Department Breakdown/csv/Breakdown/",
                    paste(output_site, collapse = " & "), 
                    "_Department Performance Breakdown_", Date, ".csv"), 
+            row.names = F, sep = ",")
+
+#save appendix
+write.table(output_appendix,
+            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                   "Productivity/Analysis/MSHS Department Breakdown/",
+                   "Department Breakdown/csv/Appendix/",
+                   paste(output_site, collapse = " & "), 
+                   "_Breakdown Appendix_", Date, ".csv"), 
+            row.names = F, sep = ",")
+
+#save VP rollup
+write.table(output_VP_roll,
+            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                   "Productivity/Analysis/MSHS Department Breakdown/",
+                   "Department Breakdown/csv/VP Rollup/",
+                   paste(output_site, collapse = " & "), 
+                   "_VP Rollup_", Date, ".csv"), 
             row.names = F, sep = ",")
