@@ -53,7 +53,7 @@ VP_roll_comparison <- VP_roll_distribution %>%
 VP_roll_summarize <- VP_roll_comparison %>%
   group_by(Hospital, VP) %>%
   summarise(across(`Target Worked FTE`:`Actual Labor Expense - FYTD Avg`,
-                   ~ sum(., is.na(.), 0)))
+                   ~ sum(., na.rm = T)))
 
 VP_roll_comparison_calc <- VP_roll_summarize %>%
   #time period average---------------------------------------------------------
