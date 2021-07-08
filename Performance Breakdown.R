@@ -11,8 +11,8 @@ library(here)
 output_site <- c("MSHS")
 
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "04/24/2021"
-previous_distribution <- "03/27/2021"
+distribution <- "05/22/2021"
+previous_distribution <- "04/24/2021"
 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -333,8 +333,8 @@ reportBuilder[[4]] <- reportBuilder[[4]] %>%
            (`Overtime Hours - FYTD Avg` / 
               `Total Paid Hours - FYTD Avg`) * 100,
          `LE Index FYTD` =
-           (`Target Labor Expense - FYTD Avg` / 
-              `Actual Labor Expense - FYTD Avg`) * 100)
+           (`Target Paid Labor Expense - FYTD Avg` / 
+              `Actual Paid Labor Expense - FYTD Avg`) * 100)
 
 #Turn productivity indexes into percentages
 reportBuilder$productivity_index[,3] <- 
@@ -372,7 +372,7 @@ breakdown_comparison <- breakdown_comparison %>%
       variance[[previous_distribution_i]][,2],
     #FTE Variance Calculations
     FTE_Var_FYTD = variance[[distribution_i]][,3] -
-      `Actual Worked FTE - FYTD Avg`,
+      `FTE Variance FYTD`,
     FTE_Var_RP = variance[[distribution_i]][,3] -
       variance[[previous_distribution_i]][,3],
     #Volume Calculations
