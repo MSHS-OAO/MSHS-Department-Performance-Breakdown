@@ -52,18 +52,18 @@ VP_roll_comparison <- VP_roll_distribution %>%
 #summarize all metrics by Hospital and VP
 VP_roll_summarize <- VP_roll_comparison %>%
   group_by(Hospital, VP) %>%
-  summarise(across(`Target Worked FTE`:`Actual Labor Expense - FYTD Avg`,
+  summarise(across(`Target Worked FTE`:`Actual Paid Labor Expense - FYTD Avg`,
                    ~ sum(., na.rm = T)))
 
 VP_roll_comparison_calc <- VP_roll_summarize %>%
   #time period average---------------------------------------------------------
   mutate(`FTE Variance` = `Worked FTE` - `Target Worked FTE`,
          .after = `Worked FTE`) %>%
-  mutate(`Productivity Index` = `Target Worked FTE`/`Worked FTE`,
+  mutate(`Productivity Index` = (`Target Worked FTE`/`Worked FTE`) * 100,
          .after = `FTE Variance`) %>%
-  mutate(`OT%` = `OT Hours`/`Paid Hours`,
+  mutate(`OT%` = (`OT Hours`/`Paid Hours`) * 100,
          .after = `Productivity Index`) %>%
-  mutate(`LE Index` = `Target LE`/LE,
+  mutate(`LE Index` = (`Target LE`/LE) * 100,
          .after = `OT%`) %>%
   select(-`Paid Hours`:-LE) %>%
   #previous distribution-------------------------------------------------------
@@ -75,15 +75,15 @@ VP_roll_comparison_calc <- VP_roll_summarize %>%
   #        .after = FTE_diff_1) %>%
   mutate(FTE_Var_1 = `1_FTE` - `1_Target FTE`,
          .after = `1_FTE`) %>%
-  mutate(PI_1 = `1_Target FTE`/`1_FTE`,
+  mutate(PI_1 = (`1_Target FTE`/`1_FTE`) * 100,
          .after = FTE_Var_1) %>%
   # mutate(PI_diff_1 = PI_1 - `Productivity Index`,
   #        .after = PI_1) %>%
-  mutate(OT_percent_1 = `1_Overtime Hours`/`1_Paid Hours`,
+  mutate(OT_percent_1 = (`1_Overtime Hours`/`1_Paid Hours`) * 100,
          .after = PI_1) %>%
   # mutate(OT_diff_1 = OT_percent_1 - `OT%`,
   #        .after = OT_percent_1) %>%
-  mutate(LE_index_1 = `1_Target Labor Expense`/`1_Labor Expense`,
+  mutate(LE_index_1 = (`1_Target Labor Expense`/`1_Labor Expense`) * 100,
          .after = OT_percent_1) %>%
   # mutate(LE_diff_1 = LE_index_1 - `LE Index`,
   #        .after = LE_index_1) %>%
@@ -97,15 +97,15 @@ VP_roll_comparison_calc <- VP_roll_summarize %>%
   #        .after = FTE_diff_2) %>%
   mutate(FTE_Var_2 = `2_FTE` - `2_Target FTE`,
          .after = `2_FTE`) %>%
-  mutate(PI_2 = `2_Target FTE`/`2_FTE`,
+  mutate(PI_2 = (`2_Target FTE`/`2_FTE`) * 100,
          .after = FTE_Var_2) %>%
   # mutate(PI_diff_2 = PI_2 - `Productivity Index`,
   #        .after = PI_2) %>%
-  mutate(OT_percent_2 = `2_Overtime Hours`/`2_Paid Hours`,
+  mutate(OT_percent_2 = (`2_Overtime Hours`/`2_Paid Hours`) * 100,
          .after = PI_2) %>%
   # mutate(OT_diff_2 = OT_percent_2 - `OT%`,
   #        .after = OT_percent_2) %>%
-  mutate(LE_index_2 = `2_Target Labor Expense`/`2_Labor Expense`,
+  mutate(LE_index_2 = (`2_Target Labor Expense`/`2_Labor Expense`) * 100,
          .after = OT_percent_2) %>%
   # mutate(LE_diff_2 = LE_index_2 - `LE Index`,
   #        .after = LE_index_2) %>%
@@ -113,13 +113,13 @@ VP_roll_comparison_calc <- VP_roll_summarize %>%
   #FYTD Calcs
   mutate(FTE_Var_FYTD = `Actual Worked FTE - FYTD Avg` - 
            `Total Target Worked FTE - FYTD Avg`,
-         PI_FYTD = `Total Target Worked FTE - FYTD Avg`/
-           `Actual Worked FTE - FYTD Avg`,
-         OT_FYTD = `Overtime Hours - FYTD Avg`/
-           `Total Paid Hours - FYTD Avg`,
-         LEI_FYTD = `Target Labor Expense - FYTD Avg`/
-           `Actual Labor Expense - FYTD Avg`) %>%
-  select(-`Volume - FYTD Avg`:-`Actual Labor Expense - FYTD Avg`) %>%
+         PI_FYTD = (`Total Target Worked FTE - FYTD Avg`/
+           `Actual Worked FTE - FYTD Avg`) * 100,
+         OT_FYTD = (`Overtime Hours - FYTD Avg`/
+           `Total Paid Hours - FYTD Avg`) * 100,
+         LEI_FYTD = (`Target Paid Labor Expense - FYTD Avg`/
+           `Actual Paid Labor Expense - FYTD Avg`) * 100) %>%
+  select(-`Volume - FYTD Avg`:-`Actual Paid Labor Expense - FYTD Avg`) %>%
   #comparison calcs
   mutate(Target_diff_FYTD = 
            `2_Target FTE` - `Total Target Worked FTE - FYTD Avg`,
