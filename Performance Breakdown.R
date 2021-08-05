@@ -10,9 +10,10 @@ library(here)
 # enter "MSHS" for all sites
 output_site <- c("MSHS")
 
+
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "05/22/2021"
-previous_distribution <- "04/24/2021"
+distribution <- "06/19/2021"
+previous_distribution <- "05/22/2021"
 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
