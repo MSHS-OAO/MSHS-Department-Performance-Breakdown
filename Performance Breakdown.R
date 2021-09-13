@@ -12,8 +12,8 @@ output_site <- c("MSHS")
 
 
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "06/19/2021"
-previous_distribution <- "05/22/2021"
+distribution <- "07/31/2021"
+previous_distribution <- "06/19/2021"
 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -41,9 +41,12 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
   filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
-  select(SITE, VP, DEFINITION.CODE, DEFINITION.NAME, KEY.VOLUME) %>%
+  select(SITE, VP, CORPORATE.SERVICE.LINE, DEFINITION.CODE, DEFINITION.NAME,
+         KEY.VOLUME) %>%
+  mutate(CORPORATE.SERVICE.LINE = replace_na(CORPORATE.SERVICE.LINE, "Not yet assigned")) %>%
   distinct()
-colnames(definitions) <- c("Hospital", "VP", "Code", "Name", "Key Volume")
+colnames(definitions) <- c("Hospital", "VP", "Corporate Service Line", "Code", 
+                           "Name", "Key Volume")
 
 #labor standards for target information
 laborStandards <- read.csv(paste0(dir_breakdown,
@@ -134,7 +137,7 @@ for(i in 1:nrow(dates)){
 #join labor standards and baseline performance to definitions table
 breakdown_targets <- 
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
-  select(Hospital.x, VP, Code, Name, `Key Volume`,
+  select(Hospital.x, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
          EffDate, `Standard Type`, `Target WHpU`) %>%
 #Baseline Time Period Performance----------------------------------------------  
   left_join(reportBuilder$time_period_performance, 
@@ -146,7 +149,7 @@ breakdown_targets <-
 #create list for time period averages
 time_period <- list()
 #place 26 time periods of each metric into each list object. 7 list objects
-cadence <- seq(from = 9, to = ncol(breakdown_targets), by = 7)
+cadence <- seq(from = 10, to = ncol(breakdown_targets), by = 7)
 for(i in 0:6){
   time_period[[i+1]] <- breakdown_targets[,cadence + i]
 }
@@ -160,7 +163,7 @@ breakdown_time_period <- cbind(
   time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
   time_period[[6]][,27], time_period[[7]][,27])
 #Assign column names
-colnames(breakdown_time_period)[c(1,5,9:15)] <- c("Hospital", "Key Volume",
+colnames(breakdown_time_period)[c(1,6,9:15)] <- c("Hospital", "Key Volume",
                                                   "Target Worked FTE", 
                                                   "Worked FTE", "Volume",
                                                   "Paid Hours", "OT Hours", 
