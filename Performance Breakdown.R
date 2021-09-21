@@ -82,17 +82,23 @@ reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
                                       "Department Performance Breakdown/",
                                       "Report Builder.csv"),
                                as.is = T)
-#Read productivity index report (Productivity Index Report)
-reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
-                                      "Report Builder/",
-                                      "Productivity Index Performance/",
-                                      "Productivity.csv"),
+# #Read productivity index report (Productivity Index Report)
+# reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
+#                                       "Report Builder/",
+#                                       "Productivity Index Performance/",
+#                                       "Productivity.csv"),
+#                                as.is = T)
+#Read Watchlist report
+reportBuilder[[3]] <- read.csv(paste0(dir_breakdown, 
+                                      "Report Builder/Watchlist/",
+                                      "Watchlist.csv"),
                                as.is = T)
 #Read FYTD report (FYTD Performance Report)
-reportBuilder[[4]] <- read.csv(paste0(dir_breakdown, 
+reportBuilder[[4]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/FYTD Performance/",
                                       "FYTD Performance.csv"),
                                as.is = T)
+
 
 #Format Files------------------------------------------------------------------
 #renaming columns
@@ -121,7 +127,7 @@ reportBuilder <- sapply(1:length(reportBuilder),
                         function(x) format_list(reportBuilder, x))
 #apply names to each list element
 names(reportBuilder) <- c("time_period_performance", "department_performance",
-                          "productivity_index", "FYTD_performance")
+                          "watchlist", "FYTD_performance")
 
 #Calculations------------------------------------------------------------------
 #calculate date index for distribution and previous distribution
@@ -291,38 +297,56 @@ breakdown_performance <- cbind(
   variance[[distribution_i]])
 
 #Watchlist Criteria------------------------------------------------------------
-#Select past 6 time period productivity index and calculate average
-Prod <- reportBuilder$productivity_index[,] %>%
-  select(seq(from = ncol(reportBuilder$productivity_index) - 35, 
-             to = ncol(reportBuilder$productivity_index) - 5, 
-             by = 6)) %>%
-  mutate(Prod = rowMeans(.))
-#Select past 6 time period FTE Variances and calculate average
-Var <- reportBuilder$productivity_index[,] %>%
-  select(seq(from = ncol(reportBuilder$productivity_index) - 34, 
-             to = ncol(reportBuilder$productivity_index) - 4, 
-             by = 6)) %>%
-  mutate(Prod = rowMeans(.))
-#bind 6 time period averages to productivity_index list element
-reportBuilder$productivity_index <- 
-  cbind(
-    reportBuilder$productivity_index[
-      ,c(5,7,(ncol(reportBuilder$productivity_index) - 5):
-           ncol(reportBuilder$productivity_index))], 
-    Prod[,7], 
-    Var[,7])
+#select past 6 time period worked hours and calculate average
+worked_hours <- reportBuilder$watchlist[,] %>%
+  select(seq(from = ncol(reportBuilder$watchlist) - 59,
+             to = ncol(reportBuilder$watchlist) - 9,
+             by = 10)) %>%
+  mutate(worked_hours = rowMeans(.))
+#select past 6 time period volume and calculate average
+volume <- reportBuilder$watchlist[,] %>%
+  select(seq(from = ncol(reportBuilder$watchlist) - 58,
+             to = ncol(reportBuilder$watchlist) - 8,
+             by = 10)) %>%
+  mutate(volume = rowMeans(.))
+#select past 6 time period FTEs and calculate average
+FTE <- reportBuilder$watchlist[,] %>%
+  select(seq(from = ncol(reportBuilder$watchlist) - 57,
+             to = ncol(reportBuilder$watchlist) - 7,
+             by = 10)) %>%
+  mutate(FTE = rowMeans(.))
+#select past 6 time period target FTEs and calculate average
+target_FTE <-  reportBuilder$watchlist[,] %>%
+  select(seq(from = ncol(reportBuilder$watchlist) - 56,
+             to = ncol(reportBuilder$watchlist) - 6,
+             by = 10)) %>%
+  mutate(target_FTE = rowMeans(.))
+#calculate 6 time period whpu average (ratio of averages)
+reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
+                                                            (ncol(reportBuilder$watchlist) - 5):
+                                                              ncol(reportBuilder$watchlist))],
+                                 target_FTE$target_FTE - FTE$FTE,
+                                 worked_hours$worked_hours/volume$volume) %>%
+  #bring in target whpu
+  left_join(breakdown_performance[,c(4,6,9)],
+            by = c("Department.Reporting.Definition.ID" = "Code", 
+                   "Key.Volume" = "Key Volume")) %>%
+  #calculate prod index for 6 time period average
+  mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
+  select(c(1:9,12)) %>%
+  rename(FTE_var = `target_FTE$target_FTE - FTE$FTE`)
 #logic for determining watchlist criteria
-reportBuilder$productivity_index$Watchlist <- NA
-for(i in 2:nrow(reportBuilder$productivity_index)){
-  if(is.na(reportBuilder$productivity_index[i,9]) |
-     is.na(reportBuilder$productivity_index[i,10])){
-    reportBuilder$productivity_index$Watchlist[i] <- "Missing Data"
-  } else if((reportBuilder$productivity_index[i,9]  > 110 | 
-            reportBuilder$productivity_index[i,9]  < 95)  &
-            abs(reportBuilder$productivity_index[i,10]) > 1){
-    reportBuilder$productivity_index$Watchlist[i] <- "Watchlist"
+reportBuilder$watchlist$Watchlist <- NA
+for(i in 2:nrow(reportBuilder$watchlist)){
+  if(is.na(reportBuilder$watchlist[i,9]) |
+     is.na(reportBuilder$watchlist[i,10])){
+    reportBuilder$watchlist$Watchlist[i] <- "Missing Data"
+  } else if((reportBuilder$watchlist[i,10]  > 110 | 
+             reportBuilder$watchlist[i,10]  < 95)  &
+            abs(reportBuilder$watchlist[i,9]) > 1){
+    reportBuilder$watchlist$Watchlist[i] <- "Watchlist"
   } else {
-    reportBuilder$productivity_index$Watchlist[i] <- "Acceptable"
+    reportBuilder$watchlist$Watchlist[i] <- "Acceptable"
   }
 }
 
@@ -342,19 +366,19 @@ reportBuilder[[4]] <- reportBuilder[[4]] %>%
               `Actual Paid Labor Expense - FYTD Avg`) * 100)
 
 #Turn productivity indexes into percentages
-reportBuilder$productivity_index[,3] <- 
-  paste0(reportBuilder$productivity_index[,3],
+reportBuilder$watchlist[,3] <- 
+  paste0(reportBuilder$watchlist[,3],
          "%") 
-reportBuilder$productivity_index[,5] <- 
-  paste0(reportBuilder$productivity_index[,5],
+reportBuilder$watchlist[,5] <- 
+  paste0(reportBuilder$watchlist[,5],
          "%")
-reportBuilder$productivity_index[,7] <- 
-  paste0(reportBuilder$productivity_index[,7],
+reportBuilder$watchlist[,7] <- 
+  paste0(reportBuilder$watchlist[,7],
          "%")
 #join producticity index report builder
 breakdown_index <- 
   left_join(breakdown_performance,
-            reportBuilder$productivity_index[,c(1,2,11,3:8)],
+            reportBuilder$watchlist[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key Volume" = "Key.Volume"))
 
@@ -402,7 +426,7 @@ breakdown_comparison <- breakdown_comparison %>%
       variance[[previous_distribution_i]][,7])
 #select necessary columns
 breakdown_comparison <- breakdown_comparison %>%
-  select(c(1:36,55:ncol(breakdown_comparison)))
+  select(c(1:37,56:ncol(breakdown_comparison)))
 
 #Auto Concatenation------------------------------------------------------------
 breakdown_text <- breakdown_comparison %>% 
@@ -444,7 +468,7 @@ breakdown_text <- breakdown_comparison %>%
     ) %>%
   #concatenate text columns and delete helper columns
   mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text)) %>%
-  select(-c(VCPn, WFTECPn, VCPn_direction, WFTECPn_direction, VCP_text, 
+  select(-c(VCPn_direction, WFTECPn_direction, VCP_text, 
             WFTECP_text))
 
 #assign an empty vector to notes and bind it to the df
@@ -452,7 +476,7 @@ Notes <- vector(mode="character", length = nrow(breakdown_text))
 breakdown_text <- cbind(breakdown_text, Notes)
 
 #assign column names for productivity index columns
-colnames(breakdown_text)[(ncol(breakdown_text)-21):ncol(breakdown_text)] <- c(
+colnames(breakdown_text)[(ncol(breakdown_text)-23):ncol(breakdown_text)] <- c(
   "Productivity Index",
   "FTE Variance",
   "Productivity Index",
@@ -473,6 +497,8 @@ colnames(breakdown_text)[(ncol(breakdown_text)-21):ncol(breakdown_text)] <- c(
   "Overtime % Difference From Previous Distribution Period",
   "Labor Expense Index % Difference From FYTD",
   "Labor Expense Index % Difference From Previous Distribution Period",
+  "Volume % Change",
+  "FTE % Change",
   "Volume & Labor Trend",
   "Notes")
 
