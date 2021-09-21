@@ -145,7 +145,7 @@ breakdown_targets <-
                    "Key Volume" = "Key.Volume")) 
 #take necessary columns
 breakdown_targets <- 
-  as.data.frame(breakdown_targets[,c(1:8,16:ncol(breakdown_targets))])
+  as.data.frame(breakdown_targets[,c(1:9,17:ncol(breakdown_targets))])
 #create list for time period averages
 time_period <- list()
 #place 26 time periods of each metric into each list object. 7 list objects
@@ -159,11 +159,11 @@ time_period <- lapply(time_period, function(x) {
     mutate(Avg = round(rowMeans(x, na.rm = T), digits = 4))})
 #cbind metric averages
 breakdown_time_period <- cbind(
-  breakdown_targets[,1:8], time_period[[1]][,27], time_period[[2]][,27],
+  breakdown_targets[,1:9], time_period[[1]][,27], time_period[[2]][,27],
   time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
   time_period[[6]][,27], time_period[[7]][,27])
 #Assign column names
-colnames(breakdown_time_period)[c(1,6,9:15)] <- c("Hospital", "Key Volume",
+colnames(breakdown_time_period)[c(1,6,10:16)] <- c("Hospital", "Key Volume",
                                                   "Target Worked FTE", 
                                                   "Worked FTE", "Volume",
                                                   "Paid Hours", "OT Hours", 
@@ -176,9 +176,10 @@ breakdown_time_period <- breakdown_time_period %>%
   mutate(`FTE Variance` = `Worked FTE` - `Target Worked FTE`,
          .after = `Worked FTE`) %>%
 #select necessary columns
-  select(Hospital, VP, Code, Name, `Key Volume`, `Standard Type`, EffDate,
-         `Target WHpU`, `Target Worked FTE`, `Worked FTE`, `FTE Variance`,
-         Volume, `Productivity Index`, `OT%`, `LE Index`) %>%
+  select(Hospital, VP, `Corporate Service Line`, Code, Name, `Key Volume`, 
+         `Standard Type`, EffDate, `Target WHpU`, `Target Worked FTE`, 
+         `Worked FTE`, `FTE Variance`, Volume, `Productivity Index`, `OT%`, 
+         `LE Index`) %>%
   
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
@@ -189,8 +190,8 @@ breakdown_time_period <- breakdown_time_period %>%
 dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
                   "Target Labor Expense", "Labor Expense")
 #Assign column names based on dates and data elements
-for(i in seq(from = 23, to = ncol(breakdown_time_period), by = 7)){
-  numbers <- seq(from = 23, to = ncol(breakdown_time_period), by = 7)
+for(i in seq(from = 24, to = ncol(breakdown_time_period), by = 7)){
+  numbers <- seq(from = 24, to = ncol(breakdown_time_period), by = 7)
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
@@ -206,14 +207,14 @@ for(i in seq(from = 23, to = ncol(breakdown_time_period), by = 7)){
 }
 #take necessary columns
 breakdown_performance <- 
-  breakdown_time_period[,c(1:15,23:ncol(breakdown_time_period))]
+  breakdown_time_period[,c(1:16,24:ncol(breakdown_time_period))]
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 16, to = ncol(breakdown_performance)-6, by = 7)
+index_sequence <- seq(from = 17, to = ncol(breakdown_performance)-6, by = 7)
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,8:15],
+    breakdown_performance[,9:16],
     breakdown_performance[,index_sequence[i]:(index_sequence[i]+6)])
 }
 #save column names in seperate list
@@ -281,11 +282,11 @@ for(i in 1:length(variance)){
 }
 #bind columns from breakdown_performance with variance list to create appendix
 breakdown_performance_appendix <- cbind(
-  breakdown_performance[,1:15],
+  breakdown_performance[,1:16],
   list.cbind(variance))
 #select only previous and current distribution for main deliverable
 breakdown_performance <- cbind(
-  breakdown_performance[,1:15],
+  breakdown_performance[,1:16],
   variance[[previous_distribution_i]],
   variance[[distribution_i]])
 
@@ -295,13 +296,13 @@ Prod <- reportBuilder$productivity_index[,] %>%
   select(seq(from = ncol(reportBuilder$productivity_index) - 35, 
              to = ncol(reportBuilder$productivity_index) - 5, 
              by = 6)) %>%
-  mutate(Prod = round(rowMeans(.), digits = 0))
+  mutate(Prod = rowMeans(.))
 #Select past 6 time period FTE Variances and calculate average
 Var <- reportBuilder$productivity_index[,] %>%
   select(seq(from = ncol(reportBuilder$productivity_index) - 34, 
              to = ncol(reportBuilder$productivity_index) - 4, 
              by = 6)) %>%
-  mutate(Prod = round(rowMeans(.), digits = 0))
+  mutate(Prod = rowMeans(.))
 #bind 6 time period averages to productivity_index list element
 reportBuilder$productivity_index <- 
   cbind(
