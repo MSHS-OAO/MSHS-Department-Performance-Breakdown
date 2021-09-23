@@ -151,7 +151,8 @@ breakdown_targets <-
                    "Key Volume" = "Key.Volume")) 
 #take necessary columns
 breakdown_targets <- 
-  as.data.frame(breakdown_targets[,c(1:9,17:ncol(breakdown_targets))])
+  as.data.frame(breakdown_targets[,c(1:9,17:ncol(breakdown_targets))]) %>%
+  filter(duplicated(Code) == F)
 #create list for time period averages
 time_period <- list()
 #place 26 time periods of each metric into each list object. 7 list objects
@@ -213,7 +214,8 @@ for(i in seq(from = 24, to = ncol(breakdown_time_period), by = 7)){
 }
 #take necessary columns
 breakdown_performance <- 
-  breakdown_time_period[,c(1:16,24:ncol(breakdown_time_period))]
+  breakdown_time_period[,c(1:16,24:ncol(breakdown_time_period))] %>%
+  filter(duplicated(Code) == F)
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
@@ -380,7 +382,15 @@ breakdown_index <-
   left_join(breakdown_performance,
             reportBuilder$watchlist[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume"))
+                 "Key Volume" = "Key.Volume")) %>%
+  #remove duplicated codes (DUS_09)
+  filter(duplicated(Code) == F)
+
+#hard code for DUS_09 time period averages
+#Target FTE, Worked FTE, FTE Variance, Volume, PI, OT%, LE Index
+dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
+
+breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
 
 #Comparison Calculations-------------------------------------------------------
 breakdown_comparison <- breakdown_index %>%
@@ -431,8 +441,8 @@ breakdown_comparison <- breakdown_comparison %>%
 #Auto Concatenation------------------------------------------------------------
 breakdown_text <- breakdown_comparison %>% 
   #Calculate % change for volume and worked fte
-  mutate(VCPn = round((Vol_RP / breakdown_comparison[,19]) * 100, 2),
-         WFTECPn = round((FTE_RP / breakdown_comparison[,17]) * 100, 2)) %>%
+  mutate(VCPn = round((Vol_RP / breakdown_comparison[,20]) * 100, 2),
+         WFTECPn = round((FTE_RP / breakdown_comparison[,18]) * 100, 2)) %>%
   mutate(
     #determine direction of change
     VCPn_direction = case_when(
@@ -466,6 +476,8 @@ breakdown_text <- breakdown_comparison %>%
       TRUE ~ paste0("Reporting Period FTEs are ", WFTECPn_direction, " ",
                     WFTECPn, "% compared to the previous reporting period"))
     ) %>%
+  mutate(VCPn = paste0(VCPn, "%"),
+         WFTECPn = paste0(WFTECPn, "%")) %>%
   #concatenate text columns and delete helper columns
   mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text)) %>%
   select(-c(VCPn_direction, WFTECPn_direction, VCP_text, 
@@ -497,13 +509,13 @@ colnames(breakdown_text)[(ncol(breakdown_text)-23):ncol(breakdown_text)] <- c(
   "Overtime % Difference From Previous Distribution Period",
   "Labor Expense Index % Difference From FYTD",
   "Labor Expense Index % Difference From Previous Distribution Period",
-  "Volume % Change",
-  "FTE % Change",
+  "Volume % Change From Previous Distribution Period",
+  "FTE % Change From Previous Distribution Period",
   "Volume & Labor Trend",
   "Notes")
 
 #sub NA for the watchlist colunn
-breakdown_text$Watchlist <- NA
+#breakdown_text$Watchlist <- NA
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/VP_Roll_Up.R"))
