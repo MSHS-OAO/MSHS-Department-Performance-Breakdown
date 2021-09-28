@@ -1,7 +1,7 @@
 library(tibble)
 
 #bind output with metric averages from time period portion
-VP_roll <- cbind(breakdown_text[,1:5],
+VP_roll <- cbind(breakdown_text[,c(1,2,4:6)],
                  time_period[[1]][,27], time_period[[2]][,27], 
                  time_period[[4]][,27], time_period[[5]][,27], 
                  time_period[[6]][,27], time_period[[7]][,27])

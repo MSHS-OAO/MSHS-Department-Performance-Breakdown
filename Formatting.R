@@ -1,10 +1,10 @@
 #Main Department Breakdown-----------------------------------------------------
 #format target WHpU
-breakdown_text[,8] <- round(breakdown_text[,8], digits = 4)
+breakdown_text[,9] <- round(breakdown_text[,9], digits = 4)
 #format time period averages
-breakdown_text[,c(9:12,42)] <- round(breakdown_text[,c(9:12,42)], digits = 2)
+breakdown_text[,c(10:13,42,43)] <- round(breakdown_text[,c(10:13,42,43)], digits = 2)
 #format percentages
-format_breakdown <- c(13:15,20:22,27:29,45:50)
+format_breakdown <- c(14:16,21:23,28:30,46:51)
 for(i in 1:length(format_breakdown)){
   for(j in 1:nrow(breakdown_text)){
     breakdown_text[j,format_breakdown[i]] <- 
@@ -20,12 +20,12 @@ for(i in 1:length(format_breakdown)){
 
 #Appendix----------------------------------------------------------------------
 #format target WHpU
-breakdown_performance_appendix[,8] <- 
-  round(breakdown_performance_appendix[,8], digits = 4)
+breakdown_performance_appendix[,9] <- 
+  round(breakdown_performance_appendix[,9], digits = 4)
 #format time period averages
-breakdown_performance_appendix[,c(9:12)] <- 
-  round(breakdown_performance_appendix[,c(9:12)], digits = 2)
-format_appendix <- seq(from = 13, to = ncol(breakdown_performance_appendix)-2,
+breakdown_performance_appendix[,c(10:13)] <- 
+  round(breakdown_performance_appendix[,c(10:13)], digits = 2)
+format_appendix <- seq(from = 14, to = ncol(breakdown_performance_appendix)-2,
                        by = 7)
 for(i in 1:length(format_appendix)){
   for(j in 1:nrow(breakdown_performance_appendix)){
