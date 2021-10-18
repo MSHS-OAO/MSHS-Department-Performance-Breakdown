@@ -4,6 +4,7 @@ library(readxl)
 library(rlist)
 library(stringr)
 library(here)
+library(openxlsx)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
@@ -45,7 +46,7 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
          KEY.VOLUME) %>%
   mutate(CORPORATE.SERVICE.LINE = replace_na(CORPORATE.SERVICE.LINE, "Not yet assigned")) %>%
   distinct()
-colnames(definitions) <- c("Hospital", "VP", "Corporate Service Line", "Code", 
+colnames(definitions) <- c("Hospital", "VP", "Corporate Service Line", "Code",
                            "Name", "Key Volume")
 
 #labor standards for target information
@@ -55,19 +56,19 @@ laborStandards <- read.csv(paste0(dir_breakdown,
                                                      rep("numeric", 7)))
 #change column headers for labor standards
 colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
-                              "DepID", "Standard Type", "Target WHpU", "LEpU", 
-                              "WHpU2", "LEpU2", "PHpU", "MinStaff", "FixStaff", 
+                              "DepID", "Standard Type", "Target WHpU", "LEpU",
+                              "WHpU2", "LEpU2", "PHpU", "MinStaff", "FixStaff",
                               "KeyVol")
 #filter on key volume and turn effective date into date format
-laborStandards <- laborStandards %>% 
+laborStandards <- laborStandards %>%
   select(-16:-21) %>%
   filter(KeyVol == "Y") %>%
-  mutate(EffDate = 
+  mutate(EffDate =
            paste0(
              substr(EffDate,1,2), "/",
              substr(EffDate,3,4), "/",
              substr(EffDate,5,8)),
-         EffDate = as.Date(EffDate, format = "%m/%d/%Y")) 
+         EffDate = as.Date(EffDate, format = "%m/%d/%Y"))
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
@@ -89,7 +90,7 @@ reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
 #                                       "Productivity.csv"),
 #                                as.is = T)
 #Read Watchlist report
-reportBuilder[[3]] <- read.csv(paste0(dir_breakdown, 
+reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Watchlist/",
                                       "Watchlist.csv"),
                                as.is = T)
@@ -111,10 +112,10 @@ format_numbers <- function(df, col_name){
   df[2:nrow(df), col_name] <- df[2:nrow(df), col_name] %>%
     str_replace_all(c("," = "", " " = "", "\\$" = "", "%" = ""))
 }
-#function to apply numeric formatting function to each "x" data table 
+#function to apply numeric formatting function to each "x" data table
 #in the list "lt"
 format_list <- function(lt, x){
-  lt[[x]][2:nrow(lt[[x]]), 10:ncol(lt[[x]])] <- 
+  lt[[x]][2:nrow(lt[[x]]), 10:ncol(lt[[x]])] <-
     sapply(colnames(lt[[x]])[10:ncol(lt[[x]])],
            function(y) format_numbers(lt[[x]], y))
   lt[[x]] <- lt[[x]] %>% slice(-1)
@@ -123,7 +124,7 @@ format_list <- function(lt, x){
   return(lt[[x]])
 }
 #using functions to format numeric columns in all data tables in the list
-reportBuilder <- sapply(1:length(reportBuilder), 
+reportBuilder <- sapply(1:length(reportBuilder),
                         function(x) format_list(reportBuilder, x))
 #apply names to each list element
 names(reportBuilder) <- c("time_period_performance", "department_performance",
@@ -141,16 +142,16 @@ for(i in 1:nrow(dates)){
 
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
-breakdown_targets <- 
+breakdown_targets <-
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
   select(Hospital.x, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
          EffDate, `Standard Type`, `Target WHpU`) %>%
-#Baseline Time Period Performance----------------------------------------------  
-  left_join(reportBuilder$time_period_performance, 
-            by = c("Code" = "Department.Reporting.Definition.ID", 
-                   "Key Volume" = "Key.Volume")) 
+#Baseline Time Period Performance----------------------------------------------
+  left_join(reportBuilder$time_period_performance,
+            by = c("Code" = "Department.Reporting.Definition.ID",
+                   "Key Volume" = "Key.Volume"))
 #take necessary columns
-breakdown_targets <- 
+breakdown_targets <-
   as.data.frame(breakdown_targets[,c(1:9,17:ncol(breakdown_targets))]) %>%
   filter(duplicated(Code) == F)
 #create list for time period averages
@@ -167,13 +168,13 @@ time_period <- lapply(time_period, function(x) {
 #cbind metric averages
 breakdown_time_period <- cbind(
   breakdown_targets[,1:9], time_period[[1]][,27], time_period[[2]][,27],
-  time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27], 
+  time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27],
   time_period[[6]][,27], time_period[[7]][,27])
 #Assign column names
 colnames(breakdown_time_period)[c(1,6,10:16)] <- c("Hospital", "Key Volume",
-                                                  "Target Worked FTE", 
+                                                  "Target Worked FTE",
                                                   "Worked FTE", "Volume",
-                                                  "Paid Hours", "OT Hours", 
+                                                  "Paid Hours", "OT Hours",
                                                   "Target LE", "LE")
 #calculate PI, OT% and LE Index
 breakdown_time_period <- breakdown_time_period %>%
@@ -183,18 +184,18 @@ breakdown_time_period <- breakdown_time_period %>%
   mutate(`FTE Variance` = `Worked FTE` - `Target Worked FTE`,
          .after = `Worked FTE`) %>%
 #select necessary columns
-  select(Hospital, VP, `Corporate Service Line`, Code, Name, `Key Volume`, 
-         `Standard Type`, EffDate, `Target WHpU`, `Target Worked FTE`, 
-         `Worked FTE`, `FTE Variance`, Volume, `Productivity Index`, `OT%`, 
+  select(Hospital, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
+         `Standard Type`, EffDate, `Target WHpU`, `Target Worked FTE`,
+         `Worked FTE`, `FTE Variance`, Volume, `Productivity Index`, `OT%`,
          `LE Index`) %>%
-  
+
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
   left_join(reportBuilder$department_performance,
             by = c("Code" = "Department.Reporting.Definition.ID",
                    "Key Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
-dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours", 
+dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours",
                   "Target Labor Expense", "Labor Expense")
 #Assign column names based on dates and data elements
 for(i in seq(from = 24, to = ncol(breakdown_time_period), by = 7)){
@@ -213,7 +214,7 @@ for(i in seq(from = 24, to = ncol(breakdown_time_period), by = 7)){
   colnames(breakdown_time_period)[i+6] <- paste(dates[k,1], dataElements[7])
 }
 #take necessary columns
-breakdown_performance <- 
+breakdown_performance <-
   breakdown_time_period[,c(1:16,24:ncol(breakdown_time_period))] %>%
   filter(duplicated(Code) == F)
 #create list for reporting period variance calculations
@@ -236,19 +237,19 @@ for(i in 1:length(variance)){
                                "Paid_Hours", "OT_Hours", "Target_LE", "LE")
 }
 #calculate reporting period Target FTE difference to baseline Target FTE
-variance <- lapply(variance, transform, 
+variance <- lapply(variance, transform,
                    FTE_Variance  = FTE - Target_FTE)
 # #calculate reporting period Target FTE difference to baseline Target FTE
-# variance <- lapply(variance, transform, 
+# variance <- lapply(variance, transform,
 #                    Target_FTE_Var  = Target_FTE - Baseline_Target_FTE)
 # #calculate reporting period FTE difference to baseline FTE
-# variance <- lapply(variance, transform, 
+# variance <- lapply(variance, transform,
 #                    FTE_Var  = FTE - Baseline_FTE)
 # #calculate FTE % change to baseline FTE
-# variance <- lapply(variance, transform, 
+# variance <- lapply(variance, transform,
 #                    Var_Percent = FTE_Var/Baseline_FTE * 100)
 # #calculate reporting period volume % change to baseline volume
-# variance <- lapply(variance, transform, 
+# variance <- lapply(variance, transform,
 #                    Vol_Percent = (((Vol - Baseline_Vol)/Baseline_Vol) * 100))
 #calculate reporting period PI
 variance <- lapply(variance, transform,
@@ -284,7 +285,7 @@ for(i in 1:length(variance)){
     # paste0("*",dates[i,1], " PI Difference"),
     paste0(dates[i,1], " Overtime %"),
     # paste0("*",dates[i,1], " OT Difference"),
-    paste0(dates[i,1], " LE Index") 
+    paste0(dates[i,1], " LE Index")
     # paste0("*",dates[i,1], " LE Index Difference")
     )
 }
@@ -331,7 +332,7 @@ reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
                                  worked_hours$worked_hours/volume$volume) %>%
   #bring in target whpu
   left_join(breakdown_performance[,c(4,6,9)],
-            by = c("Department.Reporting.Definition.ID" = "Code", 
+            by = c("Department.Reporting.Definition.ID" = "Code",
                    "Key.Volume" = "Key Volume")) %>%
   #calculate prod index for 6 time period average
   mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
@@ -343,7 +344,7 @@ for(i in 2:nrow(reportBuilder$watchlist)){
   if(is.na(reportBuilder$watchlist[i,9]) |
      is.na(reportBuilder$watchlist[i,10])){
     reportBuilder$watchlist$Watchlist[i] <- "Missing Data"
-  } else if((reportBuilder$watchlist[i,10]  > 110 | 
+  } else if((reportBuilder$watchlist[i,10]  > 110 |
              reportBuilder$watchlist[i,10]  < 95)  &
             abs(reportBuilder$watchlist[i,9]) > 1){
     reportBuilder$watchlist$Watchlist[i] <- "Watchlist"
@@ -355,30 +356,30 @@ for(i in 2:nrow(reportBuilder$watchlist)){
 #FYTD Calculations ------------------------------------------------------------
 reportBuilder[[4]] <- reportBuilder[[4]] %>%
   mutate(`FTE Variance FYTD` =
-           (`Actual Worked FTE - FYTD Avg` - 
+           (`Actual Worked FTE - FYTD Avg` -
               `Total Target Worked FTE - FYTD Avg`),
          `Productivity Index FYTD` =
-           (`Total Target Worked FTE - FYTD Avg` / 
+           (`Total Target Worked FTE - FYTD Avg` /
               `Actual Worked FTE - FYTD Avg`) * 100,
          `OT % FYTD` =
-           (`Overtime Hours - FYTD Avg` / 
+           (`Overtime Hours - FYTD Avg` /
               `Total Paid Hours - FYTD Avg`) * 100,
          `LE Index FYTD` =
-           (`Target Paid Labor Expense - FYTD Avg` / 
+           (`Target Paid Labor Expense - FYTD Avg` /
               `Actual Paid Labor Expense - FYTD Avg`) * 100)
 
 #Turn productivity indexes into percentages
-reportBuilder$watchlist[,3] <- 
+reportBuilder$watchlist[,3] <-
   paste0(reportBuilder$watchlist[,3],
-         "%") 
-reportBuilder$watchlist[,5] <- 
+         "%")
+reportBuilder$watchlist[,5] <-
   paste0(reportBuilder$watchlist[,5],
          "%")
-reportBuilder$watchlist[,7] <- 
+reportBuilder$watchlist[,7] <-
   paste0(reportBuilder$watchlist[,7],
          "%")
 #join producticity index report builder
-breakdown_index <- 
+breakdown_index <-
   left_join(breakdown_performance,
             reportBuilder$watchlist[,c(1,2,11,3:8)],
             by=c("Code" = "Department.Reporting.Definition.ID",
@@ -396,13 +397,13 @@ breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
 breakdown_comparison <- breakdown_index %>%
   left_join(reportBuilder$FYTD_performance,
           by = c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume")) 
+                 "Key Volume" = "Key.Volume"))
 breakdown_comparison <- breakdown_comparison %>%
   mutate(
     #Target FTE Calculations
-    Target_FTE_FYTD = variance[[distribution_i]][,1] - 
+    Target_FTE_FYTD = variance[[distribution_i]][,1] -
       `Total Target Worked FTE - FYTD Avg`,
-    Target_FTE_RP = variance[[distribution_i]][,1] - 
+    Target_FTE_RP = variance[[distribution_i]][,1] -
       variance[[previous_distribution_i]][,1],
     #FTE Calculations
     FTE_FYTD = variance[[distribution_i]][,2] -
@@ -415,31 +416,31 @@ breakdown_comparison <- breakdown_comparison %>%
     FTE_Var_RP = variance[[distribution_i]][,3] -
       variance[[previous_distribution_i]][,3],
     #Volume Calculations
-    Vol_FYTD = variance[[distribution_i]][,4] - 
+    Vol_FYTD = variance[[distribution_i]][,4] -
       `Volume - FYTD Avg`,
-    Vol_RP = variance[[distribution_i]][,4] - 
+    Vol_RP = variance[[distribution_i]][,4] -
       variance[[previous_distribution_i]][,4],
     #Productivity Index Calculations
-    PI_FYTD = variance[[distribution_i]][,5] - 
+    PI_FYTD = variance[[distribution_i]][,5] -
       `Productivity Index FYTD`,
-    PI_RP = variance[[distribution_i]][,5] - 
+    PI_RP = variance[[distribution_i]][,5] -
       variance[[previous_distribution_i]][,5],
     #Overtime % Calculations
     OT_FYTD = variance[[distribution_i]][,6] -
       `OT % FYTD`,
-    OT_RP = variance[[distribution_i]][,6] - 
+    OT_RP = variance[[distribution_i]][,6] -
       variance[[previous_distribution_i]][,6],
     #Labor Expense Index Calculations
-    LE_FYTD = variance[[distribution_i]][,7] - 
+    LE_FYTD = variance[[distribution_i]][,7] -
       `LE Index FYTD`,
-    LE_RP = variance[[distribution_i]][,7] - 
+    LE_RP = variance[[distribution_i]][,7] -
       variance[[previous_distribution_i]][,7])
 #select necessary columns
 breakdown_comparison <- breakdown_comparison %>%
   select(c(1:37,56:ncol(breakdown_comparison)))
 
 #Auto Concatenation------------------------------------------------------------
-breakdown_text <- breakdown_comparison %>% 
+breakdown_text <- breakdown_comparison %>%
   #Calculate % change for volume and worked fte
   mutate(VCPn = round((Vol_RP / breakdown_comparison[,20]) * 100, 2),
          WFTECPn = round((FTE_RP / breakdown_comparison[,18]) * 100, 2)) %>%
@@ -458,20 +459,20 @@ breakdown_text <- breakdown_comparison %>%
   mutate(
     #determine text based on direction of change
     VCP_text = case_when(
-      (VCPn_direction == "steady") ~ 
+      (VCPn_direction == "steady") ~
         paste0("Reporting Period volume is steady compared to the previous",
                " reporting period"),
-      (VCPn_direction == "unavailable") ~ 
+      (VCPn_direction == "unavailable") ~
         paste0("Reporting Period volume % change is unavailable"),
-      TRUE ~ 
+      TRUE ~
         paste0("Reporting Period volume is ", VCPn_direction, " ", VCPn,
                "% compared to the previous reporting period")
     ),
     WFTECP_text = case_when(
-      (WFTECPn_direction == "steady") ~ 
+      (WFTECPn_direction == "steady") ~
         paste0("Reporting Period FTEs are steady compared to the previous",
                " reporting period"),
-      (WFTECPn_direction == "unavailable") ~ 
+      (WFTECPn_direction == "unavailable") ~
         paste0("Reporting Period FTEs are unavailable"),
       TRUE ~ paste0("Reporting Period FTEs are ", WFTECPn_direction, " ",
                     WFTECPn, "% compared to the previous reporting period"))
@@ -480,7 +481,7 @@ breakdown_text <- breakdown_comparison %>%
          WFTECPn = paste0(WFTECPn, "%")) %>%
   #concatenate text columns and delete helper columns
   mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text)) %>%
-  select(-c(VCPn_direction, WFTECPn_direction, VCP_text, 
+  select(-c(VCPn_direction, WFTECPn_direction, VCP_text,
             WFTECP_text))
 
 #assign an empty vector to notes and bind it to the df
@@ -542,29 +543,21 @@ if("MSHS" %in% output_site){
 #format date for save file
 Date <- gsub("/","-",distribution)
 
-#save breakdown
-write.table(output_index,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                   "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Breakdown/",
-                   paste(output_site, collapse = " & "), 
-                   "_Department Performance Breakdown_", Date, ".csv"), 
-            row.names = F, sep = ",")
+work_book <- createWorkbook()
 
-#save appendix
-write.table(output_appendix,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                   "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Appendix/",
-                   paste(output_site, collapse = " & "), 
-                   "_Breakdown Appendix_", Date, ".csv"), 
-            row.names = F, sep = ",")
+addWorksheet(work_book, sheetName = "Department Breakdown")
+addWorksheet(work_book, sheetName = "Reports Removed")
+addWorksheet(work_book, sheetName = "Department Breakdown Guidelines")
+addWorksheet(work_book, sheetName = "VP Roll Up")
+addWorksheet(work_book, sheetName = "Appendix")
 
-#save VP rollup
-write.table(output_VP_roll,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                   "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/VP Rollup/",
-                   paste(output_site, collapse = " & "), 
-                   "_VP Rollup_", Date, ".csv"), 
-            row.names = F, sep = ",")
+writeData(work_book, "Department Breakdown", output_index)
+writeData(work_book, "VP Roll Up", output_VP_roll)
+writeData(work_book, "Appendix", output_appendix)
+
+file_name <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+       "Productivity/Analysis/MSHS Department Breakdown/",
+       "Department Breakdown/xlsx/",
+       paste(output_site, collapse = " & "),
+       "_Department Performance Breakdown_", Date, ".xlsx")
+saveWorkbook(work_book, file = file_name, overwrite = FALSE)
