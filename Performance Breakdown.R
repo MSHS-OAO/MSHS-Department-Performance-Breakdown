@@ -195,11 +195,19 @@ breakdown_time_period <- breakdown_time_period %>%
             by = c("Code" = "Department.Reporting.Definition.ID",
                    "Key Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
-dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours",
-                  "Target Labor Expense", "Labor Expense")
+#dataElements_orginal <- c("Target FTE", "FTE", "Vol", "Paid Hours", "Overtime Hours",
+                  #"Target Labor Expense", "Labor Expense")
+dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours",
+                  "Target Labor Expense", "Labor Expense", "WHpU",
+                  "Total Worked Hours", "Regular Hours", "Overtime Hours",
+                  "Education Hours", "Orientation Hours", "Agency Hours",
+                  "Other Worked Hours")
 #Assign column names based on dates and data elements
-for(i in seq(from = 24, to = ncol(breakdown_time_period), by = 7)){
-  numbers <- seq(from = 24, to = ncol(breakdown_time_period), by = 7)
+#changed by from 7 (number of metrics in data elements) to length(dataElements)
+#which dynamically updates # of data elements
+#added in colnames item for metrics 8 - 14 in loop
+for(i in seq(from = 24, to = ncol(breakdown_time_period), by = length(dataElements))){
+  numbers <- seq(from = 24, to = ncol(breakdown_time_period), by = length(dataElements))
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
@@ -212,6 +220,13 @@ for(i in seq(from = 24, to = ncol(breakdown_time_period), by = 7)){
   colnames(breakdown_time_period)[i+4] <- paste(dates[k,1], dataElements[5])
   colnames(breakdown_time_period)[i+5] <- paste(dates[k,1], dataElements[6])
   colnames(breakdown_time_period)[i+6] <- paste(dates[k,1], dataElements[7])
+  colnames(breakdown_time_period)[i+7] <- paste(dates[k,1], dataElements[8])
+  colnames(breakdown_time_period)[i+8] <- paste(dates[k,1], dataElements[9])
+  colnames(breakdown_time_period)[i+9] <- paste(dates[k,1], dataElements[10])
+  colnames(breakdown_time_period)[i+10] <- paste(dates[k,1], dataElements[11])
+  colnames(breakdown_time_period)[i+11] <- paste(dates[k,1], dataElements[12])
+  colnames(breakdown_time_period)[i+12] <- paste(dates[k,1], dataElements[13])
+  colnames(breakdown_time_period)[i+13] <- paste(dates[k,1], dataElements[14])
 }
 #take necessary columns
 breakdown_performance <-
