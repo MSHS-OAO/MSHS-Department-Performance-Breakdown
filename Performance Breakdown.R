@@ -72,40 +72,24 @@ laborStandards <- laborStandards %>%
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
-#read baseline performance report (Time Period Performance)
-reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
-                                      "Report Builder/Time Period Performance/",
-                                      "Time Period Performance.csv"),
-                               as.is = T)
 #read productivity performance report (Department Performance Breakdown)
-reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
+reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Department Performance Breakdown/",
                                       "Report Builder.csv"),
                                as.is = T)
-# #Read productivity index report (Productivity Index Report)
-# reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
-#                                       "Report Builder/",
-#                                       "Productivity Index Performance/",
-#                                       "Productivity.csv"),
-#                                as.is = T)
 #Read Watchlist report
-reportBuilder[[3]] <- read.csv(paste0(dir_breakdown,
+reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Watchlist/",
                                       "Watchlist.csv"),
-                               as.is = T)
-#Read FYTD report (FYTD Performance Report)
-reportBuilder[[4]] <- read.csv(paste0(dir_breakdown,
-                                      "Report Builder/FYTD Performance/",
-                                      "FYTD Performance.csv"),
                                as.is = T)
 
 
 #Format Files------------------------------------------------------------------
-#renaming columns
-rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:9],
-                      paste(reportBuilder[[4]][1, 10:ncol(reportBuilder[[4]])]))
-colnames(reportBuilder[[4]]) <- rb_fytd_colnames
+# #renaming columns
+# rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:9],
+#                       paste(reportBuilder[[4]][1, 10:ncol(reportBuilder[[4]])]))
+# colnames(reportBuilder[[4]]) <- rb_fytd_colnames
 #function to format numeric column by column name "col_name" to remove
 #text characters in the data table "df"
 format_numbers <- function(df, col_name){
@@ -127,8 +111,7 @@ format_list <- function(lt, x){
 reportBuilder <- sapply(1:length(reportBuilder),
                         function(x) format_list(reportBuilder, x))
 #apply names to each list element
-names(reportBuilder) <- c("time_period_performance", "department_performance",
-                          "watchlist", "FYTD_performance")
+names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
 #calculate date index for distribution and previous distribution
@@ -146,48 +129,6 @@ breakdown_targets <-
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
   select(Hospital.x, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
          EffDate, `Standard Type`, `Target WHpU`) %>%
-#Baseline Time Period Performance----------------------------------------------
-  left_join(reportBuilder$time_period_performance,
-            by = c("Code" = "Department.Reporting.Definition.ID",
-                   "Key Volume" = "Key.Volume"))
-#take necessary columns
-breakdown_targets <-
-  as.data.frame(breakdown_targets[,c(1:9,17:ncol(breakdown_targets))]) %>%
-  filter(duplicated(Code) == F)
-#create list for time period averages
-time_period <- list()
-#place 26 time periods of each metric into each list object. 7 list objects
-cadence <- seq(from = 10, to = ncol(breakdown_targets), by = 7)
-for(i in 0:6){
-  time_period[[i+1]] <- breakdown_targets[,cadence + i]
-}
-#calculate 26 time period avg for each metric
-time_period <- lapply(time_period, function(x) {
-  data.frame(x) %>%
-    mutate(Avg = round(rowMeans(x, na.rm = T), digits = 4))})
-#cbind metric averages
-breakdown_time_period <- cbind(
-  breakdown_targets[,1:9], time_period[[1]][,27], time_period[[2]][,27],
-  time_period[[3]][,27], time_period[[4]][,27], time_period[[5]][,27],
-  time_period[[6]][,27], time_period[[7]][,27])
-#Assign column names
-colnames(breakdown_time_period)[c(1,6,10:16)] <- c("Hospital", "Key Volume",
-                                                  "Target Worked FTE",
-                                                  "Worked FTE", "Volume",
-                                                  "Paid Hours", "OT Hours",
-                                                  "Target LE", "LE")
-#calculate PI, OT% and LE Index
-breakdown_time_period <- breakdown_time_period %>%
-  mutate(`Productivity Index` = (`Target Worked FTE`/`Worked FTE`) * 100,
-         `OT%` = (`OT Hours`/`Paid Hours`) * 100,
-         `LE Index` = (`Target LE`/LE) * 100) %>%
-  mutate(`FTE Variance` = `Worked FTE` - `Target Worked FTE`,
-         .after = `Worked FTE`) %>%
-#select necessary columns
-  select(Hospital, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
-         `Standard Type`, EffDate, `Target WHpU`, `Target Worked FTE`,
-         `Worked FTE`, `FTE Variance`, Volume, `Productivity Index`, `OT%`,
-         `LE Index`) %>%
 
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
@@ -353,21 +294,6 @@ for(i in 2:nrow(reportBuilder$watchlist)){
   }
 }
 
-#FYTD Calculations ------------------------------------------------------------
-reportBuilder[[4]] <- reportBuilder[[4]] %>%
-  mutate(`FTE Variance FYTD` =
-           (`Actual Worked FTE - FYTD Avg` -
-              `Total Target Worked FTE - FYTD Avg`),
-         `Productivity Index FYTD` =
-           (`Total Target Worked FTE - FYTD Avg` /
-              `Actual Worked FTE - FYTD Avg`) * 100,
-         `OT % FYTD` =
-           (`Overtime Hours - FYTD Avg` /
-              `Total Paid Hours - FYTD Avg`) * 100,
-         `LE Index FYTD` =
-           (`Target Paid Labor Expense - FYTD Avg` /
-              `Actual Paid Labor Expense - FYTD Avg`) * 100)
-
 #Turn productivity indexes into percentages
 reportBuilder$watchlist[,3] <-
   paste0(reportBuilder$watchlist[,3],
@@ -401,38 +327,24 @@ breakdown_comparison <- breakdown_index %>%
 breakdown_comparison <- breakdown_comparison %>%
   mutate(
     #Target FTE Calculations
-    Target_FTE_FYTD = variance[[distribution_i]][,1] -
-      `Total Target Worked FTE - FYTD Avg`,
     Target_FTE_RP = variance[[distribution_i]][,1] -
       variance[[previous_distribution_i]][,1],
     #FTE Calculations
-    FTE_FYTD = variance[[distribution_i]][,2] -
-      `Actual Worked FTE - FYTD Avg`,
     FTE_RP = variance[[distribution_i]][,2] -
       variance[[previous_distribution_i]][,2],
     #FTE Variance Calculations
-    FTE_Var_FYTD = variance[[distribution_i]][,3] -
-      `FTE Variance FYTD`,
     FTE_Var_RP = variance[[distribution_i]][,3] -
       variance[[previous_distribution_i]][,3],
     #Volume Calculations
-    Vol_FYTD = variance[[distribution_i]][,4] -
-      `Volume - FYTD Avg`,
     Vol_RP = variance[[distribution_i]][,4] -
       variance[[previous_distribution_i]][,4],
     #Productivity Index Calculations
-    PI_FYTD = variance[[distribution_i]][,5] -
-      `Productivity Index FYTD`,
     PI_RP = variance[[distribution_i]][,5] -
       variance[[previous_distribution_i]][,5],
     #Overtime % Calculations
-    OT_FYTD = variance[[distribution_i]][,6] -
-      `OT % FYTD`,
     OT_RP = variance[[distribution_i]][,6] -
       variance[[previous_distribution_i]][,6],
     #Labor Expense Index Calculations
-    LE_FYTD = variance[[distribution_i]][,7] -
-      `LE Index FYTD`,
     LE_RP = variance[[distribution_i]][,7] -
       variance[[previous_distribution_i]][,7])
 #select necessary columns
