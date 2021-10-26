@@ -13,8 +13,8 @@ output_site <- c("MSHS")
 
 
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "07/31/2021"
-previous_distribution <- "06/19/2021"
+distribution <- "08/28/2021"
+previous_distribution <- "07/31/2021"
 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -76,7 +76,7 @@ reportBuilder <- list()
 reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Department Performance Breakdown/",
-                                      "Report Builder.csv"),
+                                      "Report Builder_test.csv"),
                                as.is = T)
 #Read Watchlist report
 reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
@@ -86,10 +86,6 @@ reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
 
 
 #Format Files------------------------------------------------------------------
-# #renaming columns
-# rb_fytd_colnames <- c(colnames(reportBuilder[[4]])[1:9],
-#                       paste(reportBuilder[[4]][1, 10:ncol(reportBuilder[[4]])]))
-# colnames(reportBuilder[[4]]) <- rb_fytd_colnames
 #function to format numeric column by column name "col_name" to remove
 #text characters in the data table "df"
 format_numbers <- function(df, col_name){
@@ -142,112 +138,107 @@ dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
-for(i in seq(from = 24, to = ncol(breakdown_time_period), by = length(dataElements))){
-  numbers <- seq(from = 24, to = ncol(breakdown_time_period), by = length(dataElements))
+for(i in seq(from = 17, to = ncol(breakdown_targets), by = length(dataElements))){
+  numbers <- seq(from = 17, to = ncol(breakdown_targets), by = length(dataElements))
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
     }
   }
-  colnames(breakdown_time_period)[i] <- paste(dates[k,1], dataElements[1])
-  colnames(breakdown_time_period)[i+1] <- paste(dates[k,1], dataElements[2])
-  colnames(breakdown_time_period)[i+2] <- paste(dates[k,1], dataElements[3])
-  colnames(breakdown_time_period)[i+3] <- paste(dates[k,1], dataElements[4])
-  colnames(breakdown_time_period)[i+4] <- paste(dates[k,1], dataElements[5])
-  colnames(breakdown_time_period)[i+5] <- paste(dates[k,1], dataElements[6])
-  colnames(breakdown_time_period)[i+6] <- paste(dates[k,1], dataElements[7])
-  colnames(breakdown_time_period)[i+7] <- paste(dates[k,1], dataElements[8])
-  colnames(breakdown_time_period)[i+8] <- paste(dates[k,1], dataElements[9])
-  colnames(breakdown_time_period)[i+9] <- paste(dates[k,1], dataElements[10])
-  colnames(breakdown_time_period)[i+10] <- paste(dates[k,1], dataElements[11])
-  colnames(breakdown_time_period)[i+11] <- paste(dates[k,1], dataElements[12])
-  colnames(breakdown_time_period)[i+12] <- paste(dates[k,1], dataElements[13])
-  colnames(breakdown_time_period)[i+13] <- paste(dates[k,1], dataElements[14])
-  colnames(breakdown_time_period)[i+14] <- paste(dates[k,1], dataElements[15])
+  colnames(breakdown_targets)[i] <- paste(dates[k,1], dataElements[1])
+  colnames(breakdown_targets)[i+1] <- paste(dates[k,1], dataElements[2])
+  colnames(breakdown_targets)[i+2] <- paste(dates[k,1], dataElements[3])
+  colnames(breakdown_targets)[i+3] <- paste(dates[k,1], dataElements[4])
+  colnames(breakdown_targets)[i+4] <- paste(dates[k,1], dataElements[5])
+  colnames(breakdown_targets)[i+5] <- paste(dates[k,1], dataElements[6])
+  colnames(breakdown_targets)[i+6] <- paste(dates[k,1], dataElements[7])
+  colnames(breakdown_targets)[i+7] <- paste(dates[k,1], dataElements[8])
+  colnames(breakdown_targets)[i+8] <- paste(dates[k,1], dataElements[9])
+  colnames(breakdown_targets)[i+9] <- paste(dates[k,1], dataElements[10])
+  colnames(breakdown_targets)[i+10] <- paste(dates[k,1], dataElements[11])
+  colnames(breakdown_targets)[i+11] <- paste(dates[k,1], dataElements[12])
+  colnames(breakdown_targets)[i+12] <- paste(dates[k,1], dataElements[13])
+  colnames(breakdown_targets)[i+13] <- paste(dates[k,1], dataElements[14])
+  colnames(breakdown_targets)[i+14] <- paste(dates[k,1], dataElements[15])
 }
 #take necessary columns
 breakdown_performance <-
-  breakdown_time_period[,c(1:16,24:ncol(breakdown_time_period))] %>%
+  breakdown_targets[,c(1:9,17:ncol(breakdown_targets))] %>%
   filter(duplicated(Code) == F)
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 17, to = ncol(breakdown_performance)-6, by = 7)
+index_sequence <- seq(from = 10, to = ncol(breakdown_performance)-14, by = length(dataElements))
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,9:16],
-    breakdown_performance[,index_sequence[i]:(index_sequence[i]+6)])
+    breakdown_performance[,index_sequence[i]:(index_sequence[i]+14)])
 }
 #save column names in seperate list
 columns <- list()
 for(i in 1:length(variance)){
   columns[[i]] <- colnames(variance[[i]])
-  colnames(variance[[i]]) <- c("Target_WHpU", "Baseline_Target_FTE",
-                               "Baseline_FTE", "Baselint_FTE_Var",
-                               "Baseline_Vol", "Baseline_PI", "Baseline_OT",
-                               "Baseline_LEI", "Target_FTE","FTE", "Vol",
-                               "Paid_Hours", "OT_Hours", "Target_LE", "LE")
+  colnames(variance[[i]]) <- c("Target_FTE", "FTE", "Vol", "Paid_Hours", 
+                               "Target_LE", "LE", "WHpU", "Worked_Hours", 
+                               "Regular_Hours", "Overtime_Hours", 
+                               "Education_Hours", "Orientation_Hours",
+                               "Agency_Hours", "Other_Worked_Hours",
+                               "Education_Orientation")
 }
 #calculate reporting period Target FTE difference to baseline Target FTE
 variance <- lapply(variance, transform,
                    FTE_Variance  = FTE - Target_FTE)
-# #calculate reporting period Target FTE difference to baseline Target FTE
-# variance <- lapply(variance, transform,
-#                    Target_FTE_Var  = Target_FTE - Baseline_Target_FTE)
-# #calculate reporting period FTE difference to baseline FTE
-# variance <- lapply(variance, transform,
-#                    FTE_Var  = FTE - Baseline_FTE)
-# #calculate FTE % change to baseline FTE
-# variance <- lapply(variance, transform,
-#                    Var_Percent = FTE_Var/Baseline_FTE * 100)
-# #calculate reporting period volume % change to baseline volume
-# variance <- lapply(variance, transform,
-#                    Vol_Percent = (((Vol - Baseline_Vol)/Baseline_Vol) * 100))
 #calculate reporting period PI
 variance <- lapply(variance, transform,
                    PI = Target_FTE/FTE * 100)
-# #calculate reporting period PI difference to baseline PI
-# variance <- lapply(variance, transform,
-#                    PI_Change = PI - Baseline_PI)
 #calculate reporting period OT%
 variance <- lapply(variance, transform,
-                   OT = OT_Hours/Paid_Hours * 100)
-# #calculate reporting period OT% difference to baseline OT%
-# variance <- lapply(variance, transform,
-#                    OT_Change = OT - Baseline_OT)
+                   OT = Overtime_Hours/Paid_Hours * 100)
 #calculate reporting period LE Index
 variance <- lapply(variance, transform,
                    LE_Index = Target_LE/LE * 100)
-# #calculate reporting period LE index difference to baseline LE index
-# variance <- lapply(variance, transform,
-#                    LE_Change = LE_Index - Baseline_LEI)
+#calculate below target, on target, above target
+variance <- lapply(variance, transform,
+                   target = case_when(
+                     is.na(PI) ~ "",
+                     PI < 95 ~ "Below Target",
+                     PI > 110 ~ "Above Target",
+                     TRUE ~ "On Target"))
+
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
-  variance[[i]] <- variance[[i]][,c(9,10,16,11,17,18,19)]
+  variance[[i]] <- variance[[i]] %>%
+    select(Target_FTE, FTE, FTE_Variance, Vol, PI, OT, LE_Index, WHpU, 
+           Worked_Hours, Regular_Hours, Overtime_Hours, Education_Hours, 
+           Orientation_Hours, Agency_Hours, Other_Worked_Hours, 
+           Education_Orientation, target)
   colnames(variance[[i]]) <- c(
-    columns[[i]][9],
-    # paste0("*",dates[i,1], " Target FTE Difference"),
-    columns[[i]][10],
-    # paste0("*",dates[i,1], " FTE Difference"),
-    # paste0("*",dates[i,1], " FTE % Change"),
-    paste0(dates[i,1], "FTE Variance"),
-    columns[[i]][11],
-    # paste0("*",dates[i,1], " Volume % Change"),
+    columns[[i]][1],
+    columns[[i]][2],
+    paste0(dates[i,1], " FTE Variance"),
+    columns[[i]][3],
     paste0(dates[i,1], " Productivity Index"),
-    # paste0("*",dates[i,1], " PI Difference"),
     paste0(dates[i,1], " Overtime %"),
-    # paste0("*",dates[i,1], " OT Difference"),
-    paste0(dates[i,1], " LE Index")
-    # paste0("*",dates[i,1], " LE Index Difference")
+    paste0(dates[i,1], " LE Index"),
+    columns[[i]][7],
+    columns[[i]][8],
+    columns[[i]][9],
+    columns[[i]][10],
+    columns[[i]][11],
+    columns[[i]][12],
+    columns[[i]][13],
+    columns[[i]][14],
+    columns[[i]][15],
+    paste0(dates[i,1], " Below Target/On Target/Above Target")
     )
 }
+
 #bind columns from breakdown_performance with variance list to create appendix
 breakdown_performance_appendix <- cbind(
-  breakdown_performance[,1:16],
+  breakdown_performance[,1:9],
   list.cbind(variance))
 #select only previous and current distribution for main deliverable
 breakdown_performance <- cbind(
-  breakdown_performance[,1:16],
+  breakdown_performance[,1:9],
   variance[[previous_distribution_i]],
   variance[[distribution_i]])
 
@@ -278,7 +269,7 @@ target_FTE <-  reportBuilder$watchlist[,] %>%
   mutate(target_FTE = rowMeans(.))
 #calculate 6 time period whpu average (ratio of averages)
 reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
-                                                            (ncol(reportBuilder$watchlist) - 5):
+                                                            (ncol(reportBuilder$watchlist) - 1):
                                                               ncol(reportBuilder$watchlist))],
                                  target_FTE$target_FTE - FTE$FTE,
                                  worked_hours$worked_hours/volume$volume) %>%
@@ -288,17 +279,16 @@ reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
                    "Key.Volume" = "Key Volume")) %>%
   #calculate prod index for 6 time period average
   mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
-  select(c(1:9,12)) %>%
   rename(FTE_var = `target_FTE$target_FTE - FTE$FTE`)
 #logic for determining watchlist criteria
 reportBuilder$watchlist$Watchlist <- NA
 for(i in 2:nrow(reportBuilder$watchlist)){
-  if(is.na(reportBuilder$watchlist[i,9]) |
-     is.na(reportBuilder$watchlist[i,10])){
+  if(is.na(reportBuilder$watchlist[i,8]) |
+     is.na(reportBuilder$watchlist[i,5])){
     reportBuilder$watchlist$Watchlist[i] <- "Missing Data"
-  } else if((reportBuilder$watchlist[i,10]  > 110 |
-             reportBuilder$watchlist[i,10]  < 95)  &
-            abs(reportBuilder$watchlist[i,9]) > 1){
+  } else if((reportBuilder$watchlist[i,8]  > 110 |
+             reportBuilder$watchlist[i,8]  < 95)  &
+            abs(reportBuilder$watchlist[i,5]) > 1){
     reportBuilder$watchlist$Watchlist[i] <- "Watchlist"
   } else {
     reportBuilder$watchlist$Watchlist[i] <- "Acceptable"
@@ -309,16 +299,11 @@ for(i in 2:nrow(reportBuilder$watchlist)){
 reportBuilder$watchlist[,3] <-
   paste0(reportBuilder$watchlist[,3],
          "%")
-reportBuilder$watchlist[,5] <-
-  paste0(reportBuilder$watchlist[,5],
-         "%")
-reportBuilder$watchlist[,7] <-
-  paste0(reportBuilder$watchlist[,7],
-         "%")
+
 #join producticity index report builder
 breakdown_index <-
   left_join(breakdown_performance,
-            reportBuilder$watchlist[,c(1,2,11,3:8)],
+            reportBuilder$watchlist[,c(1:4,9)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key Volume" = "Key.Volume")) %>%
   #remove duplicated codes (DUS_09)
