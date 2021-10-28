@@ -316,11 +316,11 @@ dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
 breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
 
 #Comparison Calculations-------------------------------------------------------
+# breakdown_comparison <- breakdown_index %>%
+#   left_join(reportBuilder$FYTD_performance,
+#           by = c("Code" = "Department.Reporting.Definition.ID",
+#                  "Key Volume" = "Key.Volume"))
 breakdown_comparison <- breakdown_index %>%
-  left_join(reportBuilder$FYTD_performance,
-          by = c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume"))
-breakdown_comparison <- breakdown_comparison %>%
   mutate(
     #Target FTE Calculations
     Target_FTE_RP = variance[[distribution_i]][,1] -
@@ -343,9 +343,9 @@ breakdown_comparison <- breakdown_comparison %>%
     #Labor Expense Index Calculations
     LE_RP = variance[[distribution_i]][,7] -
       variance[[previous_distribution_i]][,7])
-#select necessary columns
-breakdown_comparison <- breakdown_comparison %>%
-  select(c(1:37,56:ncol(breakdown_comparison)))
+# #select necessary columns
+# breakdown_comparison <- breakdown_comparison %>%
+#   select(c(1:37,56:ncol(breakdown_comparison)))
 
 #Auto Concatenation------------------------------------------------------------
 breakdown_text <- breakdown_comparison %>%
