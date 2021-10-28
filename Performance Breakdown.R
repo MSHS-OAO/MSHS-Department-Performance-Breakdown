@@ -177,9 +177,9 @@ for(i in 1:length(index_sequence)){
 columns <- list()
 for(i in 1:length(variance)){
   columns[[i]] <- colnames(variance[[i]])
-  colnames(variance[[i]]) <- c("Target_FTE", "FTE", "Vol", "Paid_Hours", 
-                               "Target_LE", "LE", "WHpU", "Worked_Hours", 
-                               "Regular_Hours", "Overtime_Hours", 
+  colnames(variance[[i]]) <- c("Target_FTE", "FTE", "Vol", "Paid_Hours",
+                               "Target_LE", "LE", "WHpU", "Worked_Hours",
+                               "Regular_Hours", "Overtime_Hours",
                                "Education_Hours", "Orientation_Hours",
                                "Agency_Hours", "Other_Worked_Hours",
                                "Education_Orientation")
@@ -207,9 +207,9 @@ variance <- lapply(variance, transform,
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
   variance[[i]] <- variance[[i]] %>%
-    select(Target_FTE, FTE, FTE_Variance, Vol, PI, OT, LE_Index, WHpU, 
-           Worked_Hours, Regular_Hours, Overtime_Hours, Education_Hours, 
-           Orientation_Hours, Agency_Hours, Other_Worked_Hours, 
+    select(Target_FTE, FTE, FTE_Variance, Vol, PI, OT, LE_Index, WHpU,
+           Worked_Hours, Regular_Hours, Overtime_Hours, Education_Hours,
+           Orientation_Hours, Agency_Hours, Other_Worked_Hours,
            Education_Orientation, target)
   colnames(variance[[i]]) <- c(
     columns[[i]][1],
@@ -312,7 +312,7 @@ breakdown_index <-
 # #hard code for DUS_09 time period averages
 # #Target FTE, Worked FTE, FTE Variance, Volume, PI, OT%, LE Index
 # dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
-# 
+#
 # breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
 
 #Comparison Calculations-------------------------------------------------------
@@ -344,50 +344,17 @@ breakdown_comparison <- breakdown_index %>%
     LE_RP = variance[[distribution_i]][,7] -
       variance[[previous_distribution_i]][,7])
 
-#Auto Concatenation------------------------------------------------------------
-breakdown_text <- breakdown_comparison %>%
-  #Calculate % change for volume and worked fte
-  mutate(VCPn = round((Vol_RP / breakdown_comparison[,20]) * 100, 2),
-         WFTECPn = round((FTE_RP / breakdown_comparison[,18]) * 100, 2)) %>%
+#create and place columns for % Change in volume and FTEs compared to prev RP
+breakdown_comparison <- breakdown_comparison %>%
   mutate(
-    #determine direction of change
-    VCPn_direction = case_when(
-      (VCPn > threshold) ~ "up",
-      (VCPn < -threshold) ~ "down",
-      (is.na(VCPn)) ~ "unavailable",
-      TRUE ~ "steady"),
-    WFTECPn_direction = case_when(
-      (WFTECPn > threshold) ~ "up",
-      (WFTECPn < -threshold) ~ "down",
-      (is.na(WFTECPn)) ~ "unavailable",
-      TRUE ~ "steady")) %>%
-  mutate(
-    #determine text based on direction of change
-    VCP_text = case_when(
-      (VCPn_direction == "steady") ~
-        paste0("Reporting Period volume is steady compared to the previous",
-               " reporting period"),
-      (VCPn_direction == "unavailable") ~
-        paste0("Reporting Period volume % change is unavailable"),
-      TRUE ~
-        paste0("Reporting Period volume is ", VCPn_direction, " ", VCPn,
-               "% compared to the previous reporting period")
-    ),
-    WFTECP_text = case_when(
-      (WFTECPn_direction == "steady") ~
-        paste0("Reporting Period FTEs are steady compared to the previous",
-               " reporting period"),
-      (WFTECPn_direction == "unavailable") ~
-        paste0("Reporting Period FTEs are unavailable"),
-      TRUE ~ paste0("Reporting Period FTEs are ", WFTECPn_direction, " ",
-                    WFTECPn, "% compared to the previous reporting period"))
-    ) %>%
-  mutate(VCPn = paste0(VCPn, "%"),
-         WFTECPn = paste0(WFTECPn, "%")) %>%
-  #concatenate text columns and delete helper columns
-  mutate(auto_text = paste0(VCP_text, "; ", WFTECP_text)) %>%
-  select(-c(VCPn_direction, WFTECPn_direction, VCP_text,
-            WFTECP_text))
+    VCPn = (variance[[distribution_i]][,4] /
+         variance[[previous_distribution_i]][,4]) - 1,
+    WFTECPn = (variance[[distribution_i]][,2] /
+         variance[[previous_distribution_i]][,2]) - 1) %>%
+  mutate(WFTECPn = paste0(round(WFTECPn, 4) * 100, "%"),
+         VCPn = paste0(round(VCPn, 4) * 100, "%")) %>%
+  relocate(WFTECPn, .after = FTE_RP) %>%
+  relocate(VCPn, .after = Vol_RP)
 
 #assign an empty vector to notes and bind it to the df
 Notes <- vector(mode="character", length = nrow(breakdown_text))
