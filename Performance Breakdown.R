@@ -343,9 +343,6 @@ breakdown_comparison <- breakdown_index %>%
     #Labor Expense Index Calculations
     LE_RP = variance[[distribution_i]][,7] -
       variance[[previous_distribution_i]][,7])
-# #select necessary columns
-# breakdown_comparison <- breakdown_comparison %>%
-#   select(c(1:37,56:ncol(breakdown_comparison)))
 
 #Auto Concatenation------------------------------------------------------------
 breakdown_text <- breakdown_comparison %>%
