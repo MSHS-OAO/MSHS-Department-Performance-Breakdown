@@ -76,7 +76,7 @@ reportBuilder <- list()
 reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Department Performance Breakdown/",
-                                      "Report Builder_test.csv"),
+                                      "Report Builder.csv"),
                                as.is = T)
 #Read Watchlist report
 reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
@@ -303,17 +303,17 @@ reportBuilder$watchlist[,3] <-
 #join producticity index report builder
 breakdown_index <-
   left_join(breakdown_performance,
-            reportBuilder$watchlist[,c(1:4,9)],
+            reportBuilder$watchlist[,c(1,2,9,3,4)],
             by=c("Code" = "Department.Reporting.Definition.ID",
                  "Key Volume" = "Key.Volume")) %>%
   #remove duplicated codes (DUS_09)
   filter(duplicated(Code) == F)
 
-#hard code for DUS_09 time period averages
-#Target FTE, Worked FTE, FTE Variance, Volume, PI, OT%, LE Index
-dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
-
-breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
+# #hard code for DUS_09 time period averages
+# #Target FTE, Worked FTE, FTE Variance, Volume, PI, OT%, LE Index
+# dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
+# 
+# breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
 
 #Comparison Calculations-------------------------------------------------------
 # breakdown_comparison <- breakdown_index %>%
