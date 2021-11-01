@@ -189,13 +189,13 @@ variance <- lapply(variance, transform,
                    FTE_Variance  = FTE - Target_FTE)
 #calculate reporting period PI
 variance <- lapply(variance, transform,
-                   PI = Target_FTE/FTE * 100)
+                   PI = round(Target_FTE/FTE * 100, digits = 2))
 #calculate reporting period OT%
 variance <- lapply(variance, transform,
-                   OT = Overtime_Hours/Paid_Hours * 100)
+                   OT = round(Overtime_Hours/Paid_Hours * 100, digits = 2))
 #calculate reporting period LE Index
 variance <- lapply(variance, transform,
-                   LE_Index = Target_LE/LE * 100)
+                   LE_Index = round(Target_LE/LE * 100, digits = 2))
 #calculate below target, on target, above target
 variance <- lapply(variance, transform,
                    target = case_when(
@@ -383,7 +383,7 @@ colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_chan
 #breakdown_text$Watchlist <- NA
 
 #VP Roll-Up--------------------------------------------------------------------
-source(paste0(here(),"/VP_Roll_Up.R"))
+source(paste0(here(),"/Roll_Up.R"))
 
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
