@@ -132,7 +132,7 @@ breakdown_targets <-
             by = c("Code" = "Department.Reporting.Definition.ID",
                    "Key Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
-dataElements <- c("Target FTE", "FTE", "Vol", "Paid Hours",
+dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Target Labor Expense", "Labor Expense", "WHpU",
                   "Total Worked Hours", "Regular Hours", "Overtime Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
@@ -189,13 +189,13 @@ variance <- lapply(variance, transform,
                    FTE_Variance  = FTE - Target_FTE)
 #calculate reporting period PI
 variance <- lapply(variance, transform,
-                   PI = Target_FTE/FTE * 100)
+                   PI = round(Target_FTE/FTE * 100, digits = 2))
 #calculate reporting period OT%
 variance <- lapply(variance, transform,
-                   OT = Overtime_Hours/Paid_Hours * 100)
+                   OT = round(Overtime_Hours/Paid_Hours * 100, digits = 2))
 #calculate reporting period LE Index
 variance <- lapply(variance, transform,
-                   LE_Index = Target_LE/LE * 100)
+                   LE_Index = round(Target_LE/LE * 100, digits = 2))
 #calculate below target, on target, above target
 variance <- lapply(variance, transform,
                    target = case_when(
@@ -203,6 +203,8 @@ variance <- lapply(variance, transform,
                      PI < 95 ~ "Below Target",
                      PI > 110 ~ "Above Target",
                      TRUE ~ "On Target"))
+#save full variance for roll up
+variance_roll <- variance
 
 #rearange variance list elements and replace column names
 for(i in 1:length(variance)){
@@ -345,7 +347,7 @@ breakdown_comparison <- breakdown_index %>%
       variance[[previous_distribution_i]][,7])
 
 #create and place columns for % Change in volume and FTEs compared to prev RP
-breakdown_comparison <- breakdown_comparison %>%
+breakdown_change <- breakdown_comparison %>%
   mutate(
     VCPn = (variance[[distribution_i]][,4] /
          variance[[previous_distribution_i]][,4]) - 1,
@@ -357,41 +359,31 @@ breakdown_comparison <- breakdown_comparison %>%
   relocate(VCPn, .after = Vol_RP)
 
 #assign an empty vector to notes and bind it to the df
-Notes <- vector(mode="character", length = nrow(breakdown_text))
-breakdown_text <- cbind(breakdown_text, Notes)
+Notes <- vector(mode="character", length = nrow(breakdown_change))
+breakdown_change <- cbind(breakdown_change, Notes)
 
 #assign column names for productivity index columns
-colnames(breakdown_text)[(ncol(breakdown_text)-23):ncol(breakdown_text)] <- c(
+colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
+  "Hospital",
+  "Effective Date",
   "Productivity Index",
   "FTE Variance",
-  "Productivity Index",
-  "FTE Variance",
-  "Productivity Index",
-  "FTE Variance",
-  "Target FTE Difference from FYTD",
   "Target FTE Difference from Previous Distribution Period",
-  "FTE Difference from FYTD",
   "FTE Difference from Previous Distribution Period",
-  "FTE Variance Difference from FYTD",
-  "FTE Variance Difference from Previous Distribution Period",
-  "Volume Difference from FYTD",
-  "Volume Difference from Previous Distribution Period",
-  "Productivity Index % Difference From FYTD",
-  "Productivity Index % Difference From Previous Distribution Period",
-  "Overtime % Difference From FYTD",
-  "Overtime % Difference From Previous Distribution Period",
-  "Labor Expense Index % Difference From FYTD",
-  "Labor Expense Index % Difference From Previous Distribution Period",
-  "Volume % Change From Previous Distribution Period",
   "FTE % Change From Previous Distribution Period",
-  "Volume & Labor Trend",
+  "FTE Variance Difference from Previous Distribution Period",
+  "Volume Difference from Previous Distribution Period",
+  "Volume % Change From Previous Distribution Period",
+  "Productivity Index % Difference From Previous Distribution Period",
+  "Overtime % Difference From Previous Distribution Period",
+  "Labor Expense Index % Difference From Previous Distribution Period",
   "Notes")
 
 #sub NA for the watchlist colunn
 #breakdown_text$Watchlist <- NA
 
 #VP Roll-Up--------------------------------------------------------------------
-source(paste0(here(),"/VP_Roll_Up.R"))
+source(paste0(here(),"/Roll_Up.R"))
 
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))

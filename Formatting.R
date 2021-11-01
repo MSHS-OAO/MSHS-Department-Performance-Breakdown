@@ -1,20 +1,20 @@
 #Main Department Breakdown-----------------------------------------------------
 #format target WHpU
-breakdown_text[,9] <- round(breakdown_text[,9], digits = 4)
-#format time period averages
-breakdown_text[,c(10:13,42,43)] <- round(breakdown_text[,c(10:13,42,43)], digits = 2)
+breakdown_change[,9] <- round(breakdown_change[,9], digits = 4)
+# #format time period averages
+# breakdown_change[,c(10:13,42,43)] <- round(breakdown_change[,c(10:13,42,43)], digits = 2)
 #format percentages
-format_breakdown <- c(14:16,21:23,28:30,46:51)
+format_breakdown <- c(14:16,25,31:33,42)
 for(i in 1:length(format_breakdown)){
-  for(j in 1:nrow(breakdown_text)){
-    breakdown_text[j,format_breakdown[i]] <- 
-      round(breakdown_text[j,format_breakdown[i]], digits = 2)
+  for(j in 1:nrow(breakdown_change)){
+    breakdown_change[j,format_breakdown[i]] <- 
+      round(breakdown_change[j,format_breakdown[i]], digits = 2)
   }
 }
 for(i in 1:length(format_breakdown)){
-  for(j in 1:nrow(breakdown_text)){
-    breakdown_text[j,format_breakdown[i]] <- 
-      paste0(breakdown_text[j,format_breakdown[i]], "%")
+  for(j in 1:nrow(breakdown_change)){
+    breakdown_change[j,format_breakdown[i]] <- 
+      paste0(breakdown_change[j,format_breakdown[i]], "%")
   }
 }
 
@@ -22,11 +22,11 @@ for(i in 1:length(format_breakdown)){
 #format target WHpU
 breakdown_performance_appendix[,9] <- 
   round(breakdown_performance_appendix[,9], digits = 4)
-#format time period averages
-breakdown_performance_appendix[,c(10:13)] <- 
-  round(breakdown_performance_appendix[,c(10:13)], digits = 2)
+# #format time period averages
+# breakdown_performance_appendix[,c(10:13)] <-
+#   round(breakdown_performance_appendix[,c(10:13)], digits = 2)
 format_appendix <- seq(from = 14, to = ncol(breakdown_performance_appendix)-2,
-                       by = 7)
+                       by = 17)
 for(i in 1:length(format_appendix)){
   for(j in 1:nrow(breakdown_performance_appendix)){
     breakdown_performance_appendix[j, format_appendix[i]] <- 
@@ -48,22 +48,36 @@ for(i in 1:length(format_appendix)){
   }
 }
 
-#VP Rollup---------------------------------------------------------------------
-#format time period averages
-VP_roll_comparison_calc[,c(3:5,9:11,15:17,21:26)] <- 
-  round(VP_roll_comparison_calc[,c(3:5,9:11,15:17,21:26)], digits = 2)
-#format percentages
-format_VP <- c(6:8,12:14,18:20,27:32)
-for(i in 1:length(format_VP)){
-  for(j in 1:nrow(VP_roll_comparison_calc)){
-    VP_roll_comparison_calc[j,format_VP[i]] <- 
-      round(VP_roll_comparison_calc[j,format_VP[i]], digits = 2)
+#Rollup---------------------------------------------------------------------
+# #format time period averages
+# VP_roll_comparison_calc[,c(3:5,9:11,15:17,21:26)] <- 
+#   round(VP_roll_comparison_calc[,c(3:5,9:11,15:17,21:26)], digits = 2)
+#format VP roll up
+format_roll_up <- c(6:8,16,20:22,30,34:36)
+for(i in 1:length(format_roll_up)){
+  for(j in 1:nrow(roll_up_list[[1]])){
+    roll_up_list[[1]][j,format_roll_up[i]] <- 
+      round(roll_up_list[[1]][j,format_roll_up[i]], digits = 2)
   }
 }
-VP_roll_comparison_calc <- as.data.frame(VP_roll_comparison_calc)
-for(i in 1:length(format_VP)){
-  for(j in 1:nrow(VP_roll_comparison_calc)){
-    VP_roll_comparison_calc[j,format_VP[i]] <- 
-      paste0(VP_roll_comparison_calc[j,format_VP[i]], "%")
+roll_up_list[[1]] <- as.data.frame(roll_up_list[[1]])
+for(i in 1:length(format_roll_up)){
+  for(j in 1:nrow(roll_up_list[[1]])){
+    roll_up_list[[1]][j,format_roll_up[i]] <- 
+      paste0(roll_up_list[[1]][j,format_roll_up[i]], "%")
+  }
+}
+#format corporate roll up
+for(i in 1:length(format_roll_up)){
+  for(j in 1:nrow(roll_up_list[[2]])){
+    roll_up_list[[2]][j,format_roll_up[i]] <- 
+      round(roll_up_list[[2]][j,format_roll_up[i]], digits = 2)
+  }
+}
+roll_up_list[[2]] <- as.data.frame(roll_up_list[[2]])
+for(i in 1:length(format_roll_up)){
+  for(j in 1:nrow(roll_up_list[[2]])){
+    roll_up_list[[2]][j,format_roll_up[i]] <- 
+      paste0(roll_up_list[[2]][j,format_roll_up[i]], "%")
   }
 }
