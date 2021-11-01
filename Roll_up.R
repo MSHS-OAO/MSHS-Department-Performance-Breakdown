@@ -60,11 +60,35 @@ roll_up_list <- lapply(roll_up_list, transform,
                        / Paid_Hours_1 *100)
 roll_up_list <- lapply(roll_up_list, transform,
                        ED_Orientation_2 = 
-                         (Education_Hours_2 + Orientation_Hours_2) 
+                         (Education_Hours_2 + Orientation_Hours_2)
                        / Paid_Hours_2 * 100)
 
+##Comparison Calculations
+#Target FTE
+roll_up_list <- lapply(roll_up_list, transform,
+                       target_diff = Target_FTE_2 - Target_FTE_1)
+#FTE
+roll_up_list <- lapply(roll_up_list, transform,
+                       fte_diff = FTE_2 - FTE_1)
+#FTE variance
+roll_up_list <- lapply(roll_up_list, transform,
+                       fte_var_diff = FTE_Var_2 - FTE_Var_1)
+#Productivity Index
+roll_up_list <- lapply(roll_up_list, transform,
+                       PI_diff = PI_2 - PI_1)
+#Productivity Index
+roll_up_list <- lapply(roll_up_list, transform,
+                       OT_diff = OT_2 - OT_1)
+#Productivity Index
+roll_up_list <- lapply(roll_up_list, transform,
+                       LE_diff = LE_Index_2 - LE_Index_1)
+#Notes
+roll_up_list <- lapply(roll_up_list, transform,
+                       Notes = "")
+
+
 #VP roll_up column selection
-VP_roll <- roll_up_list$vp %>%
+roll_up_list$vp <- roll_up_list$vp %>%
   select(Hospital, VP, 
          
          Target_FTE_1, FTE_1, FTE_Var_1, PI_1, OT_1, LE_Index_1,
@@ -75,10 +99,12 @@ VP_roll <- roll_up_list$vp %>%
          Target_FTE_2, FTE_2, FTE_Var_2, PI_2, OT_2, LE_Index_2,
          Worked_Hours_2, Regular_Hours_2, Overtime_Hours_2, Education_Hours_2,
          Orientation_Hours_2, Agency_Hours_2, Other_Worked_Hours_2, 
-         ED_Orientation_2)
+         ED_Orientation_2,
+         
+         target_diff, fte_diff, fte_var_diff, PI_diff, OT_diff, LE_diff, Notes)
 
 #Corporate roll_up column selection
-Corporate_roll <- roll_up_list$corporate %>%
+roll_up_list$corporate <- roll_up_list$corporate %>%
   select(Hospital, Corporate.Service.Line, 
          
          Target_FTE_1, FTE_1, FTE_Var_1, PI_1, OT_1, LE_Index_1,
@@ -89,5 +115,52 @@ Corporate_roll <- roll_up_list$corporate %>%
          Target_FTE_2, FTE_2, FTE_Var_2, PI_2, OT_2, LE_Index_2,
          Worked_Hours_2, Regular_Hours_2, Overtime_Hours_2, Education_Hours_2,
          Orientation_Hours_2, Agency_Hours_2, Other_Worked_Hours_2, 
-         ED_Orientation_2)
+         ED_Orientation_2,
+         
+         target_diff, fte_diff, fte_var_diff, PI_diff, OT_diff, LE_diff, Notes)
 
+column_names <- c(
+  "Hospital",
+  "place_holder",
+  
+  paste(dates[previous_distribution_i,1], dataElements[1]),
+  paste(dates[previous_distribution_i,1], dataElements[2]),
+  paste(dates[previous_distribution_i,1], "FTE Variance"),
+  paste(dates[previous_distribution_i,1], "Productivity Index"),
+  paste(dates[previous_distribution_i,1], "Overtime %"),
+  paste(dates[previous_distribution_i,1], "LE Index"),
+  paste(dates[previous_distribution_i,1], dataElements[8]),
+  paste(dates[previous_distribution_i,1], dataElements[9]),
+  paste(dates[previous_distribution_i,1], dataElements[10]),
+  paste(dates[previous_distribution_i,1], dataElements[11]),
+  paste(dates[previous_distribution_i,1], dataElements[12]),
+  paste(dates[previous_distribution_i,1], dataElements[13]),
+  paste(dates[previous_distribution_i,1], dataElements[14]),
+  paste(dates[previous_distribution_i,1], dataElements[15]),
+  
+  paste(dates[distribution_i,1], dataElements[1]),
+  paste(dates[distribution_i,1], dataElements[2]),
+  paste(dates[distribution_i,1], "FTE Variance"),
+  paste(dates[distribution_i,1], "Productivity Index"),
+  paste(dates[distribution_i,1], "Overtime %"),
+  paste(dates[distribution_i,1], "LE Index"),
+  paste(dates[distribution_i,1], dataElements[8]),
+  paste(dates[distribution_i,1], dataElements[9]),
+  paste(dates[distribution_i,1], dataElements[10]),
+  paste(dates[distribution_i,1], dataElements[11]),
+  paste(dates[distribution_i,1], dataElements[12]),
+  paste(dates[distribution_i,1], dataElements[13]),
+  paste(dates[distribution_i,1], dataElements[14]),
+  paste(dates[distribution_i,1], dataElements[15]),
+  "Target FTE Difference from Previous Distribution Period",
+  "FTE Difference from Previous Distribution Period",
+  "FTE Variance Difference from Previous Distribution Period",
+  "Productivity Index % Difference From Previous Distribution Period",
+  "Overtime % Difference From Previous Distribution Period",
+  "Labor Expense Index % Difference From Previous Distribution Period",
+  "Notes")
+
+#apply column names to both data framse
+roll_up_list <- lapply(roll_up_list, setNames, column_names)
+colnames(roll_up_list$vp)[2] <- "VP"
+colnames(roll_up_list$corporate)[2] <- "Corporate Service Line"
