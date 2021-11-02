@@ -388,19 +388,25 @@ source(paste0(here(),"/Roll_Up.R"))
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
 
-
-
+#removing unwanted columns
+breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
+                                           pattern = "Target FTE")]
+breakdown_performance_appendix <- breakdown_performance_appendix[, -grep(colnames(breakdown_change),
+                                                                        pattern = "Target FTE")]
 #logic for determining what site(s) to output
 if("MSHS" %in% output_site){
   output_index <- breakdown_text
   output_appendix <- breakdown_performance_appendix
-  output_VP_roll <- VP_roll_comparison_calc
+  output_VP_roll <- roll_up_list$vp
+  output_corpservice_roll <- roll_up_list$corporate
 } else {
   output_index <- breakdown_text %>%
     filter(Hospital %in% output_site)
-  output_VP_roll <- VP_roll_comparison_calc %>%
+  output_VP_roll <- roll_up_list$vp %>%
     filter(Hospital %in% output_site)
   output_appendix <- breakdown_performance_appendix %>%
+    filter(Hospital %in% output_site)
+  output_corpservice_roll <- roll_up_list$corporate %>%
     filter(Hospital %in% output_site)
 }
 
@@ -413,10 +419,12 @@ addWorksheet(work_book, sheetName = "Department Breakdown")
 addWorksheet(work_book, sheetName = "Reports Removed")
 addWorksheet(work_book, sheetName = "Department Breakdown Guidelines")
 addWorksheet(work_book, sheetName = "VP Roll Up")
+addWorksheet(work_book, sheetName = "Corporate Service Roll Up")
 addWorksheet(work_book, sheetName = "Appendix")
 
 writeData(work_book, "Department Breakdown", output_index)
 writeData(work_book, "VP Roll Up", output_VP_roll)
+writeData(work_book, "Corporate Service Roll Up", output_corpservice_roll)
 writeData(work_book, "Appendix", output_appendix)
 
 file_name <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
