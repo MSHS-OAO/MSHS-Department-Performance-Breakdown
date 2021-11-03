@@ -76,10 +76,10 @@ roll_up_list <- lapply(roll_up_list, transform,
 #Productivity Index
 roll_up_list <- lapply(roll_up_list, transform,
                        PI_diff = PI_2 - PI_1)
-#Productivity Index
+#Overtime %
 roll_up_list <- lapply(roll_up_list, transform,
                        OT_diff = OT_2 - OT_1)
-#Productivity Index
+#LE Index %
 roll_up_list <- lapply(roll_up_list, transform,
                        LE_diff = LE_Index_2 - LE_Index_1)
 #Notes
