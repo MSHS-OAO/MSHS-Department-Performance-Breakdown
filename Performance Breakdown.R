@@ -13,8 +13,8 @@ output_site <- c("MSHS")
 
 
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "08/28/2021"
-previous_distribution <- "07/31/2021"
+distribution <- "09/25/2021"
+previous_distribution <- "08/28/2021"
 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -466,5 +466,5 @@ write.table(output_corpservice_roll,
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Corporate Rollup/",
                    paste(output_site, collapse = " & "), 
-                   "_VP Rollup_", Date, ".csv"), 
+                   "_Corporate Rollup_", Date, ".csv"), 
             row.names = F, sep = ",")
