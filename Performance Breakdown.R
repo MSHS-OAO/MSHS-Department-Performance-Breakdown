@@ -16,9 +16,6 @@ output_site <- c("MSHS")
 distribution <- "09/25/2021"
 previous_distribution <- "08/28/2021"
 
-#define percentage threshold for what is considered upward/downward change
-threshold <- 1.5
-
 #Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
@@ -73,13 +70,13 @@ laborStandards <- laborStandards %>%
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
 #read productivity performance report (Department Performance Breakdown)
-reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
+reportBuilder$department_performance <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Department Performance Breakdown/",
                                       "Report Builder.csv"),
                                as.is = T)
 #Read Watchlist report
-reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
+reportBuilder$watchlist <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Watchlist/",
                                       "Watchlist.csv"),
                                as.is = T)
@@ -106,8 +103,6 @@ format_list <- function(lt, x){
 #using functions to format numeric columns in all data tables in the list
 reportBuilder <- sapply(1:length(reportBuilder),
                         function(x) format_list(reportBuilder, x))
-#apply names to each list element
-names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
 #calculate date index for distribution and previous distribution
@@ -311,17 +306,7 @@ breakdown_index <-
   #remove duplicated codes (DUS_09)
   filter(duplicated(Code) == F)
 
-# #hard code for DUS_09 time period averages
-# #Target FTE, Worked FTE, FTE Variance, Volume, PI, OT%, LE Index
-# dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
-#
-# breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
-
 #Comparison Calculations-------------------------------------------------------
-# breakdown_comparison <- breakdown_index %>%
-#   left_join(reportBuilder$FYTD_performance,
-#           by = c("Code" = "Department.Reporting.Definition.ID",
-#                  "Key Volume" = "Key.Volume"))
 breakdown_comparison <- breakdown_index %>%
   mutate(
     #Target FTE Calculations
@@ -378,9 +363,6 @@ colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_chan
   "Overtime % Difference From Previous Distribution Period",
   "Labor Expense Index % Difference From Previous Distribution Period",
   "Notes")
-
-#sub NA for the watchlist colunn
-#breakdown_text$Watchlist <- NA
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
