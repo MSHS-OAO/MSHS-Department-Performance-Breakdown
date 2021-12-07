@@ -58,14 +58,9 @@ colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
                               "KeyVol")
 #filter on key volume and turn effective date into date format
 laborStandards <- laborStandards %>%
-  select(-16:-21) %>%
-  filter(KeyVol == "Y") %>%
-  mutate(EffDate =
-           paste0(
-             substr(EffDate,1,2), "/",
-             substr(EffDate,3,4), "/",
-             substr(EffDate,5,8)),
-         EffDate = as.Date(EffDate, format = "%m/%d/%Y"))
+  select(Partner, Hospital, Code, EffDate, VolID, DepID, `Standard Type`,
+         `Target WHpU`, LEpU, WHpU2, LEpU2, PHpU, MinStaff, FixStaff, KeyVol) %>%
+  filter(KeyVol == "Y") 
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
@@ -116,10 +111,10 @@ for(i in 1:nrow(dates)){
 
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
-breakdown_targets <-
+breakdown_performance <-
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
   select(Hospital.x, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
-         EffDate, `Standard Type`, `Target WHpU`) %>%
+         `Standard Type`, `Target WHpU`) %>%
 
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
@@ -133,32 +128,32 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
-for(i in seq(from = 17, to = ncol(breakdown_targets), by = length(dataElements))){
-  numbers <- seq(from = 17, to = ncol(breakdown_targets), by = length(dataElements))
+for(i in seq(from = 17, to = ncol(breakdown_performance), by = length(dataElements))){
+  numbers <- seq(from = 17, to = ncol(breakdown_performance), by = length(dataElements))
   for(j in 1:length(numbers)){
     if(numbers[j] == i){
       k = j
     }
   }
-  colnames(breakdown_targets)[i] <- paste(dates[k,1], dataElements[1])
-  colnames(breakdown_targets)[i+1] <- paste(dates[k,1], dataElements[2])
-  colnames(breakdown_targets)[i+2] <- paste(dates[k,1], dataElements[3])
-  colnames(breakdown_targets)[i+3] <- paste(dates[k,1], dataElements[4])
-  colnames(breakdown_targets)[i+4] <- paste(dates[k,1], dataElements[5])
-  colnames(breakdown_targets)[i+5] <- paste(dates[k,1], dataElements[6])
-  colnames(breakdown_targets)[i+6] <- paste(dates[k,1], dataElements[7])
-  colnames(breakdown_targets)[i+7] <- paste(dates[k,1], dataElements[8])
-  colnames(breakdown_targets)[i+8] <- paste(dates[k,1], dataElements[9])
-  colnames(breakdown_targets)[i+9] <- paste(dates[k,1], dataElements[10])
-  colnames(breakdown_targets)[i+10] <- paste(dates[k,1], dataElements[11])
-  colnames(breakdown_targets)[i+11] <- paste(dates[k,1], dataElements[12])
-  colnames(breakdown_targets)[i+12] <- paste(dates[k,1], dataElements[13])
-  colnames(breakdown_targets)[i+13] <- paste(dates[k,1], dataElements[14])
-  colnames(breakdown_targets)[i+14] <- paste(dates[k,1], dataElements[15])
+  colnames(breakdown_performance)[i] <- paste(dates[k,1], dataElements[1])
+  colnames(breakdown_performance)[i+1] <- paste(dates[k,1], dataElements[2])
+  colnames(breakdown_performance)[i+2] <- paste(dates[k,1], dataElements[3])
+  colnames(breakdown_performance)[i+3] <- paste(dates[k,1], dataElements[4])
+  colnames(breakdown_performance)[i+4] <- paste(dates[k,1], dataElements[5])
+  colnames(breakdown_performance)[i+5] <- paste(dates[k,1], dataElements[6])
+  colnames(breakdown_performance)[i+6] <- paste(dates[k,1], dataElements[7])
+  colnames(breakdown_performance)[i+7] <- paste(dates[k,1], dataElements[8])
+  colnames(breakdown_performance)[i+8] <- paste(dates[k,1], dataElements[9])
+  colnames(breakdown_performance)[i+9] <- paste(dates[k,1], dataElements[10])
+  colnames(breakdown_performance)[i+10] <- paste(dates[k,1], dataElements[11])
+  colnames(breakdown_performance)[i+11] <- paste(dates[k,1], dataElements[12])
+  colnames(breakdown_performance)[i+12] <- paste(dates[k,1], dataElements[13])
+  colnames(breakdown_performance)[i+13] <- paste(dates[k,1], dataElements[14])
+  colnames(breakdown_performance)[i+14] <- paste(dates[k,1], dataElements[15])
 }
 #take necessary columns
 breakdown_performance <-
-  breakdown_targets[,c(1:9,17:ncol(breakdown_targets))] %>%
+  breakdown_performance[,c(1:9,17:ncol(breakdown_performance))] %>%
   filter(duplicated(Code) == F)
 #create list for reporting period variance calculations
 variance <- list()
