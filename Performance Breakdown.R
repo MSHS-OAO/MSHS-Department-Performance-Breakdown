@@ -11,10 +11,12 @@ library(openxlsx)
 # enter "MSHS" for all sites
 output_site <- c("MSHS")
 
-
+#Commented section below can be deleted after code review - for demo
+#This is the old manual way of users inputing distribution dates
+#This section is move to the next section in "Read in Files" completed during reading in dates table
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "09/25/2021"
-previous_distribution <- "08/28/2021"
+# distribution <- "09/25/2021"
+# previous_distribution <- "08/28/2021"
  
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -23,10 +25,27 @@ threshold <- 1.5
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
-#Read in end dates file for column headers
+#Read in pay cycle file
 dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                           "Productivity/Universal Data/Mapping/",
-                          "MSHS_Pay_Cycle.xlsx")) %>%
+                          "MSHS_Pay_Cycle.xlsx"))
+
+#Table of distribution dates
+dist_dates <- dates %>%
+  select(END.DATE, PREMIER.DISTRIBUTION) %>%
+  distinct() %>%
+  drop_na() %>%
+  arrange(END.DATE) %>%
+  #filter only on distribution end dates
+  filter(PREMIER.DISTRIBUTION %in% c(TRUE, 1),
+         #filter 3 weeks from run date (21 days) for data collection lag before run date
+         END.DATE < as.POSIXct(Sys.Date() - 21))
+#Select current and previous distribution dates
+distribution <- format(dist_dates$END.DATE[nrow(dist_dates)],"%m/%d/%Y")
+previous_distribution <- format(dist_dates$END.DATE[nrow(dist_dates)-1],"%m/%d/%Y")
+
+#Table of end dates used for column header names
+dates <- dates %>%
   select(END.DATE) %>%
   mutate(END.DATE = as.Date(END.DATE)) %>%
   filter(END.DATE >= as.Date("05/23/2020", format = "%m/%d/%Y")) %>%
@@ -110,7 +129,9 @@ reportBuilder <- sapply(1:length(reportBuilder),
 names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
-#calculate date index for distribution and previous distribution
+#Determine date index for distribution and previous distribution
+
+#Delete commented rows below after code review - for demo
 # for(i in 1:nrow(dates)){
 #   if(dates[i,1] == distribution){
 #     distribution_i <- i
