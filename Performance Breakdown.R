@@ -15,7 +15,7 @@ output_site <- c("MSHS")
 #define current and previous distribution "mm/dd/yyyy"
 distribution <- "09/25/2021"
 previous_distribution <- "08/28/2021"
-
+ 
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
 
@@ -111,13 +111,15 @@ names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
 #calculate date index for distribution and previous distribution
-for(i in 1:nrow(dates)){
-  if(dates[i,1] == distribution){
-    distribution_i <- i
-  } else if(dates[i,1] == previous_distribution){
-    previous_distribution_i <- i
-  }
-}
+# for(i in 1:nrow(dates)){
+#   if(dates[i,1] == distribution){
+#     distribution_i <- i
+#   } else if(dates[i,1] == previous_distribution){
+#     previous_distribution_i <- i
+#   }
+# }
+distribution_i <- which(dates == distribution)
+previous_distribution_i <- which(dates == previous_distribution)
 
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
