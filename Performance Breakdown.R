@@ -47,7 +47,7 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "MSHS Productivity/Productivity/",
                                 "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
-  filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
+  filter(CLOSED < distribution, DEPARTMENT.BREAKDOWN == 1) %>%
   select(SITE, VP, CORPORATE.SERVICE.LINE, DEFINITION.CODE, DEFINITION.NAME,
          KEY.VOLUME) %>%
   mutate(CORPORATE.SERVICE.LINE = replace_na(CORPORATE.SERVICE.LINE, "Not yet assigned")) %>%
