@@ -365,8 +365,8 @@ breakdown_change <- breakdown_comparison %>%
   relocate(VCPn, .after = Vol_RP)
 
 #assign an empty vector to notes and bind it to the df
-Notes <- vector(mode="character", length = nrow(breakdown_change))
-breakdown_change <- cbind(breakdown_change, Notes)
+breakdown_change <- breakdown_change %>%
+  mutate(Notes = "")
 
 #assign column names for productivity index columns
 colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
