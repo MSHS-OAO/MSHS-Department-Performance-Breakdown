@@ -9,7 +9,15 @@ library(openxlsx)
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
 # enter "MSHS" for all sites
-output_site <- c("MSHS")
+
+output_site <-
+  select.list(
+    choices = c("MSHS", "MSB", "MSBI", "MSH", "MSM", "MSQ", "MSW"),
+    title = "Select Output Site(s)",
+    multiple = T,
+    graphics = T,
+    preselect = "MSHS"
+  )
 
 #Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
@@ -69,7 +77,7 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "MSHS Productivity/Productivity/",
                                 "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
-  filter(!is.na(KEY.VOLUME), DEPARTMENT.BREAKDOWN == 1) %>%
+  filter(CLOSED < distribution, DEPARTMENT.BREAKDOWN == 1) %>%
   select(SITE, VP, CORPORATE.SERVICE.LINE, DEFINITION.CODE, DEFINITION.NAME,
          KEY.VOLUME) %>%
   mutate(CORPORATE.SERVICE.LINE = replace_na(CORPORATE.SERVICE.LINE, "Not yet assigned")) %>%
@@ -352,8 +360,8 @@ breakdown_change <- breakdown_comparison %>%
   relocate(VCPn, .after = Vol_RP)
 
 #assign an empty vector to notes and bind it to the df
-Notes <- vector(mode="character", length = nrow(breakdown_change))
-breakdown_change <- cbind(breakdown_change, Notes)
+breakdown_change <- breakdown_change %>%
+  mutate(Notes = "")
 
 #assign column names for productivity index columns
 colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
@@ -404,19 +412,19 @@ if("MSHS" %in% output_site){
 Date <- gsub("/","-",distribution)
 
 # work_book <- createWorkbook()
-# 
+#
 # addWorksheet(work_book, sheetName = "Department Breakdown")
 # addWorksheet(work_book, sheetName = "Reports Removed")
 # addWorksheet(work_book, sheetName = "Department Breakdown Guidelines")
 # addWorksheet(work_book, sheetName = "VP Roll Up")
 # addWorksheet(work_book, sheetName = "Corporate Service Roll Up")
 # addWorksheet(work_book, sheetName = "Appendix")
-# 
+#
 # writeData(work_book, "Department Breakdown", output_index)
 # writeData(work_book, "VP Roll Up", output_VP_roll)
 # writeData(work_book, "Corporate Service Roll Up", output_corpservice_roll)
 # writeData(work_book, "Appendix", output_appendix)
-# 
+#
 # file_name <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
 #        "Productivity/Analysis/MSHS Department Breakdown/",
 #        "Department Breakdown/xlsx/",
@@ -428,8 +436,8 @@ write.table(output_index,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Breakdown/",
-                   paste(output_site, collapse = " & "), 
-                   "_Department Performance Breakdown_", Date, ".csv"), 
+                   paste(output_site, collapse = " & "),
+                   "_Department Performance Breakdown_", Date, ".csv"),
             row.names = F, sep = ",")
 
 #save appendix
@@ -437,8 +445,8 @@ write.table(output_appendix,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Appendix/",
-                   paste(output_site, collapse = " & "), 
-                   "_Breakdown Appendix_", Date, ".csv"), 
+                   paste(output_site, collapse = " & "),
+                   "_Breakdown Appendix_", Date, ".csv"),
             row.names = F, sep = ",")
 
 #save VP rollup
@@ -446,8 +454,8 @@ write.table(output_VP_roll,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/VP Rollup/",
-                   paste(output_site, collapse = " & "), 
-                   "_VP Rollup_", Date, ".csv"), 
+                   paste(output_site, collapse = " & "),
+                   "_VP Rollup_", Date, ".csv"),
             row.names = F, sep = ",")
 
 #save Corporate rollup
@@ -455,6 +463,6 @@ write.table(output_corpservice_roll,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Corporate Rollup/",
-                   paste(output_site, collapse = " & "), 
-                   "_Corporate Rollup_", Date, ".csv"), 
+                   paste(output_site, collapse = " & "),
+                   "_Corporate Rollup_", Date, ".csv"),
             row.names = F, sep = ",")
