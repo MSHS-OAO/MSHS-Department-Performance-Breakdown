@@ -40,9 +40,26 @@ dist_dates <- dates %>%
   filter(PREMIER.DISTRIBUTION %in% c(TRUE, 1),
          #filter 3 weeks from run date (21 days) for data collection lag before run date
          END.DATE < as.POSIXct(Sys.Date() - 21))
-#Select current and previous distribution dates
+#Selecting current and previous distribution dates
 distribution <- format(dist_dates$END.DATE[nrow(dist_dates)],"%m/%d/%Y")
 previous_distribution <- format(dist_dates$END.DATE[nrow(dist_dates)-1],"%m/%d/%Y")
+#Confirming distribution dates
+# cat("Current distribution is", distribution,
+#     "\nPrevious distribution is", previous_distribution)
+# answer <- select.list(choices = c("Yes", "No"),
+#                       preselect = "Yes",
+#                       multiple = F,
+#                       title = "Correct distribution?",
+#                       graphics = T)
+# if (answer == "No") {
+#   distribution <- select.list(choices = format(dist_dates$END.DATE, "%m/%d/%Y"),
+#                         multiple = F,
+#                         title = "Select current distribution",
+#                         graphics = T)
+#   which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))
+#   previous_distribution <- format(dist_dates$END.DATE[which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))-1],"%m/%d/%Y")
+# }
+
 
 #Table of end dates used for column header names
 dates <- dates %>%
@@ -53,7 +70,8 @@ dates <- dates %>%
     substr(END.DATE, 6, 7), "/",
     substr(END.DATE, 9, 10), "/",
     substr(END.DATE, 1, 4))) %>%
-  distinct()
+  distinct() %>%
+  arrange(END.DATE)
 
 #Reporting definitions included in all hospital admin rollup reports
 definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
