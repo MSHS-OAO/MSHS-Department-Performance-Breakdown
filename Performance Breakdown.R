@@ -77,7 +77,8 @@ definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
                                 "MSHS Productivity/Productivity/",
                                 "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
-  filter(CLOSED < distribution, DEPARTMENT.BREAKDOWN == 1) %>%
+  filter(CLOSED > as.POSIXct(distribution, format = "%m/%d/%Y") | is.na(CLOSED), 
+         DEPARTMENT.BREAKDOWN %in% c(TRUE,1)) %>%
   select(SITE, VP, CORPORATE.SERVICE.LINE, DEFINITION.CODE, DEFINITION.NAME,
          KEY.VOLUME) %>%
   mutate(CORPORATE.SERVICE.LINE = replace_na(CORPORATE.SERVICE.LINE, "Not yet assigned")) %>%
@@ -167,7 +168,7 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
 #Assign column names based on dates and data elements
 
 #keep the column names of all columns that do not contain pay period date data - columns containg "..." in name
-colnames(breakdown_targets) <- c(breakdown_targets %>% select(-contains("...")) %>% colnames(),
+colnames(breakdown_performance) <- c(breakdown_performance %>% select(-contains("...")) %>% colnames(),
                                  #for each date up to current distribution create one column name for each data element
                                  sapply(dates$END.DATE[1:distribution_i],
                                         function(x) paste(x, dataElements)))
