@@ -44,15 +44,17 @@ dist_dates <- dates %>%
 distribution <- format(dist_dates$END.DATE[nrow(dist_dates)],"%m/%d/%Y")
 previous_distribution <- format(dist_dates$END.DATE[nrow(dist_dates)-1],"%m/%d/%Y")
 #Confirming distribution dates
-# cat("Current distribution is", distribution,
-#     "\nPrevious distribution is", previous_distribution)
+cat("Current distribution is", distribution,
+    "\nPrevious distribution is", previous_distribution)
 # answer <- select.list(choices = c("Yes", "No"),
 #                       preselect = "Yes",
 #                       multiple = F,
 #                       title = "Correct distribution?",
 #                       graphics = T)
 # if (answer == "No") {
-#   distribution <- select.list(choices = format(dist_dates$END.DATE, "%m/%d/%Y"),
+#   distribution <- select.list(choices = 
+#                                 format(sort.POSIXlt(dist_dates$END.DATE, decreasing = T),
+#                                        "%m/%d/%Y"),
 #                         multiple = F,
 #                         title = "Select current distribution",
 #                         graphics = T)
@@ -70,8 +72,7 @@ dates <- dates %>%
     substr(END.DATE, 6, 7), "/",
     substr(END.DATE, 9, 10), "/",
     substr(END.DATE, 1, 4))) %>%
-  distinct() %>%
-  arrange(END.DATE)
+  distinct()
 
 #Reporting definitions included in all hospital admin rollup reports
 definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
@@ -152,9 +153,9 @@ names(reportBuilder) <- c("department_performance", "watchlist")
 #Delete commented rows below after code review - for demo
 # for(i in 1:nrow(dates)){
 #   if(dates[i,1] == distribution){
-#     distribution_i <- i
+#     distribution_i_1 <- i
 #   } else if(dates[i,1] == previous_distribution){
-#     previous_distribution_i <- i
+#     previous_distribution_i_1 <- i
 #   }
 # }
 distribution_i <- which(dates == distribution)
@@ -179,8 +180,7 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
-#Please note that this section does not currently work as data is only available for previous distribution
-#For demo change distribution_i variable to previous_distribution_i
+#keep the column names of all columns that do not contain pay period date data - columns containg "..." in name
 colnames(breakdown_targets) <- c(breakdown_targets %>% select(-contains("...")) %>% colnames(),
                                  #for each date up to current distribution create one column name for each data element
                                  sapply(dates$END.DATE[1:distribution_i],
