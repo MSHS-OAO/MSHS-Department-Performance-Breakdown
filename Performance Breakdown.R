@@ -10,9 +10,6 @@ library(openxlsx)
 #Site(s) user would like to produce department breakdown for
 # enter "MSHS" for all sites
 output_site <- c("MSHS")
- 
-#define percentage threshold for what is considered upward/downward change
-threshold <- 1.5
 
 #Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
@@ -92,14 +89,9 @@ colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
                               "KeyVol")
 #filter on key volume and turn effective date into date format
 laborStandards <- laborStandards %>%
-  select(-16:-21) %>%
-  filter(KeyVol == "Y") %>%
-  mutate(EffDate =
-           paste0(
-             substr(EffDate,1,2), "/",
-             substr(EffDate,3,4), "/",
-             substr(EffDate,5,8)),
-         EffDate = as.Date(EffDate, format = "%m/%d/%Y"))
+  select(Partner, Hospital, Code, EffDate, VolID, DepID, `Standard Type`,
+         `Target WHpU`, LEpU, WHpU2, LEpU2, PHpU, MinStaff, FixStaff, KeyVol) %>%
+  filter(KeyVol == "Y") 
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
@@ -137,6 +129,7 @@ format_list <- function(lt, x){
 #using functions to format numeric columns in all data tables in the list
 reportBuilder <- sapply(1:length(reportBuilder),
                         function(x) format_list(reportBuilder, x))
+
 #apply names to each list element
 names(reportBuilder) <- c("department_performance", "watchlist")
 
@@ -147,10 +140,10 @@ previous_distribution_i <- which(dates == previous_distribution)
 
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
-breakdown_targets <-
+breakdown_performance <-
   left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
   select(Hospital.x, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
-         EffDate, `Standard Type`, `Target WHpU`) %>%
+         `Standard Type`, `Target WHpU`) %>%
 
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
@@ -164,22 +157,24 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
+
 #keep the column names of all columns that do not contain pay period date data - columns containg "..." in name
 colnames(breakdown_targets) <- c(breakdown_targets %>% select(-contains("...")) %>% colnames(),
                                  #for each date up to current distribution create one column name for each data element
                                  sapply(dates$END.DATE[1:distribution_i],
                                         function(x) paste(x, dataElements)))
+
 #take necessary columns
 breakdown_performance <-
-  breakdown_targets[,c(1:9,17:ncol(breakdown_targets))] %>%
+  breakdown_performance[,c(1:9,17:ncol(breakdown_performance))] %>%
   filter(duplicated(Code) == F)
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 10, to = ncol(breakdown_performance)-14, by = length(dataElements))
+index_sequence <- seq(from = 10, to = ncol(breakdown_performance)-13, by = length(dataElements))
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,index_sequence[i]:(index_sequence[i]+14)])
+    breakdown_performance[,index_sequence[i]:(index_sequence[i]+13)])
 }
 #save column names in seperate list
 columns <- list()
@@ -319,17 +314,7 @@ breakdown_index <-
   #remove duplicated codes (DUS_09)
   filter(duplicated(Code) == F)
 
-# #hard code for DUS_09 time period averages
-# #Target FTE, Worked FTE, FTE Variance, Volume, PI, OT%, LE Index
-# dus_09 <- c(81.5, 73.98, -7.52 , 3893.46, 110.16397, 1.00436192, 108.05589)
-#
-# breakdown_index[breakdown_index$Code == "DUS_09",10:16] <- dus_09
-
 #Comparison Calculations-------------------------------------------------------
-# breakdown_comparison <- breakdown_index %>%
-#   left_join(reportBuilder$FYTD_performance,
-#           by = c("Code" = "Department.Reporting.Definition.ID",
-#                  "Key Volume" = "Key.Volume"))
 breakdown_comparison <- breakdown_index %>%
   mutate(
     #Target FTE Calculations
@@ -386,9 +371,6 @@ colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_chan
   "Overtime % Difference From Previous Distribution Period",
   "Labor Expense Index % Difference From Previous Distribution Period",
   "Notes")
-
-#sub NA for the watchlist colunn
-#breakdown_text$Watchlist <- NA
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
