@@ -11,19 +11,50 @@ library(openxlsx)
 # enter "MSHS" for all sites
 output_site <- c("MSHS")
 
-
-#define current and previous distribution "mm/dd/yyyy"
-distribution <- "11/20/2021"
-previous_distribution <- "10/23/2021"
-
 #Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
-#Read in end dates file for column headers
+#Read in pay cycle file
 dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                           "Productivity/Universal Data/Mapping/",
-                          "MSHS_Pay_Cycle.xlsx")) %>%
+                          "MSHS_Pay_Cycle.xlsx"))
+
+#Table of distribution dates
+dist_dates <- dates %>%
+  select(END.DATE, PREMIER.DISTRIBUTION) %>%
+  distinct() %>%
+  drop_na() %>%
+  arrange(END.DATE) %>%
+  #filter only on distribution end dates
+  filter(PREMIER.DISTRIBUTION %in% c(TRUE, 1),
+         #filter 3 weeks from run date (21 days) for data collection lag before run date
+         END.DATE < as.POSIXct(Sys.Date() - 21))
+#Selecting current and previous distribution dates
+distribution <- format(dist_dates$END.DATE[nrow(dist_dates)],"%m/%d/%Y")
+previous_distribution <- format(dist_dates$END.DATE[nrow(dist_dates)-1],"%m/%d/%Y")
+#Confirming distribution dates
+cat("Current distribution is", distribution,
+    "\nPrevious distribution is", previous_distribution)
+answer <- select.list(choices = c("Yes", "No"),
+                      preselect = "Yes",
+                      multiple = F,
+                      title = "Correct distribution?",
+                      graphics = T)
+if (answer == "No") {
+  distribution <- select.list(choices =
+                                format(sort.POSIXlt(dist_dates$END.DATE, decreasing = T),
+                                       "%m/%d/%Y"),
+                        multiple = F,
+                        title = "Select current distribution",
+                        graphics = T)
+  which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))
+  previous_distribution <- format(dist_dates$END.DATE[which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))-1],"%m/%d/%Y")
+}
+
+
+#Table of end dates used for column header names
+dates <- dates %>%
   select(END.DATE) %>%
   mutate(END.DATE = as.Date(END.DATE)) %>%
   filter(END.DATE >= as.Date("05/23/2020", format = "%m/%d/%Y")) %>%
@@ -103,14 +134,9 @@ reportBuilder <- sapply(1:length(reportBuilder),
 names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
-#calculate date index for distribution and previous distribution
-for(i in 1:nrow(dates)){
-  if(dates[i,1] == distribution){
-    distribution_i <- i
-  } else if(dates[i,1] == previous_distribution){
-    previous_distribution_i <- i
-  }
-}
+#Determine date index for distribution and previous distribution
+distribution_i <- which(dates == distribution)
+previous_distribution_i <- which(dates == previous_distribution)
 
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
@@ -131,29 +157,13 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
-for(i in seq(from = 17, to = ncol(breakdown_performance), by = length(dataElements))){
-  numbers <- seq(from = 17, to = ncol(breakdown_performance), by = length(dataElements))
-  for(j in 1:length(numbers)){
-    if(numbers[j] == i){
-      k = j
-    }
-  }
-  colnames(breakdown_performance)[i] <- paste(dates[k,1], dataElements[1])
-  colnames(breakdown_performance)[i+1] <- paste(dates[k,1], dataElements[2])
-  colnames(breakdown_performance)[i+2] <- paste(dates[k,1], dataElements[3])
-  colnames(breakdown_performance)[i+3] <- paste(dates[k,1], dataElements[4])
-  colnames(breakdown_performance)[i+4] <- paste(dates[k,1], dataElements[5])
-  colnames(breakdown_performance)[i+5] <- paste(dates[k,1], dataElements[6])
-  colnames(breakdown_performance)[i+6] <- paste(dates[k,1], dataElements[7])
-  colnames(breakdown_performance)[i+7] <- paste(dates[k,1], dataElements[8])
-  colnames(breakdown_performance)[i+8] <- paste(dates[k,1], dataElements[9])
-  colnames(breakdown_performance)[i+9] <- paste(dates[k,1], dataElements[10])
-  colnames(breakdown_performance)[i+10] <- paste(dates[k,1], dataElements[11])
-  colnames(breakdown_performance)[i+11] <- paste(dates[k,1], dataElements[12])
-  colnames(breakdown_performance)[i+12] <- paste(dates[k,1], dataElements[13])
-  colnames(breakdown_performance)[i+13] <- paste(dates[k,1], dataElements[14])
-  colnames(breakdown_performance)[i+14] <- paste(dates[k,1], dataElements[15])
-}
+
+#keep the column names of all columns that do not contain pay period date data - columns containg "..." in name
+colnames(breakdown_targets) <- c(breakdown_targets %>% select(-contains("...")) %>% colnames(),
+                                 #for each date up to current distribution create one column name for each data element
+                                 sapply(dates$END.DATE[1:distribution_i],
+                                        function(x) paste(x, dataElements)))
+
 #take necessary columns
 breakdown_performance <-
   breakdown_performance[,c(1:9,17:ncol(breakdown_performance))] %>%
