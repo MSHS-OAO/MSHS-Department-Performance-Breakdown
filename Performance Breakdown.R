@@ -13,8 +13,8 @@ output_site <- c("MSHS")
 
 
 #define current and previous distribution "mm/dd/yyyy"
-distribution <- "09/25/2021"
-previous_distribution <- "08/28/2021"
+distribution <- "11/20/2021"
+previous_distribution <- "10/23/2021"
 
 #Read in Files-----------------------------------------------------------------
 dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
@@ -65,13 +65,13 @@ laborStandards <- laborStandards %>%
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
 #read productivity performance report (Department Performance Breakdown)
-reportBuilder$department_performance <- read.csv(paste0(dir_breakdown,
+reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/",
                                       "Department Performance Breakdown/",
                                       "Report Builder.csv"),
                                as.is = T)
 #Read Watchlist report
-reportBuilder$watchlist <- read.csv(paste0(dir_breakdown,
+reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
                                       "Report Builder/Watchlist/",
                                       "Watchlist.csv"),
                                as.is = T)
@@ -98,6 +98,9 @@ format_list <- function(lt, x){
 #using functions to format numeric columns in all data tables in the list
 reportBuilder <- sapply(1:length(reportBuilder),
                         function(x) format_list(reportBuilder, x))
+
+#apply names to each list element
+names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
 #calculate date index for distribution and previous distribution
@@ -158,10 +161,10 @@ breakdown_performance <-
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 10, to = ncol(breakdown_performance)-14, by = length(dataElements))
+index_sequence <- seq(from = 10, to = ncol(breakdown_performance)-13, by = length(dataElements))
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,index_sequence[i]:(index_sequence[i]+14)])
+    breakdown_performance[,index_sequence[i]:(index_sequence[i]+13)])
 }
 #save column names in seperate list
 columns <- list()
