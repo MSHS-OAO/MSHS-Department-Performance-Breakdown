@@ -10,13 +10,6 @@ library(openxlsx)
 #Site(s) user would like to produce department breakdown for
 # enter "MSHS" for all sites
 output_site <- c("MSHS")
-
-#Commented section below can be deleted after code review - for demo
-#This is the old manual way of users inputing distribution dates
-#This section is move to the next section in "Read in Files" completed during reading in dates table
-#define current and previous distribution "mm/dd/yyyy"
-# distribution <- "09/25/2021"
-# previous_distribution <- "08/28/2021"
  
 #define percentage threshold for what is considered upward/downward change
 threshold <- 1.5
@@ -46,21 +39,21 @@ previous_distribution <- format(dist_dates$END.DATE[nrow(dist_dates)-1],"%m/%d/%
 #Confirming distribution dates
 cat("Current distribution is", distribution,
     "\nPrevious distribution is", previous_distribution)
-# answer <- select.list(choices = c("Yes", "No"),
-#                       preselect = "Yes",
-#                       multiple = F,
-#                       title = "Correct distribution?",
-#                       graphics = T)
-# if (answer == "No") {
-#   distribution <- select.list(choices = 
-#                                 format(sort.POSIXlt(dist_dates$END.DATE, decreasing = T),
-#                                        "%m/%d/%Y"),
-#                         multiple = F,
-#                         title = "Select current distribution",
-#                         graphics = T)
-#   which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))
-#   previous_distribution <- format(dist_dates$END.DATE[which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))-1],"%m/%d/%Y")
-# }
+answer <- select.list(choices = c("Yes", "No"),
+                      preselect = "Yes",
+                      multiple = F,
+                      title = "Correct distribution?",
+                      graphics = T)
+if (answer == "No") {
+  distribution <- select.list(choices =
+                                format(sort.POSIXlt(dist_dates$END.DATE, decreasing = T),
+                                       "%m/%d/%Y"),
+                        multiple = F,
+                        title = "Select current distribution",
+                        graphics = T)
+  which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))
+  previous_distribution <- format(dist_dates$END.DATE[which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))-1],"%m/%d/%Y")
+}
 
 
 #Table of end dates used for column header names
@@ -149,15 +142,6 @@ names(reportBuilder) <- c("department_performance", "watchlist")
 
 #Calculations------------------------------------------------------------------
 #Determine date index for distribution and previous distribution
-
-#Delete commented rows below after code review - for demo
-# for(i in 1:nrow(dates)){
-#   if(dates[i,1] == distribution){
-#     distribution_i_1 <- i
-#   } else if(dates[i,1] == previous_distribution){
-#     previous_distribution_i_1 <- i
-#   }
-# }
 distribution_i <- which(dates == distribution)
 previous_distribution_i <- which(dates == previous_distribution)
 
@@ -185,31 +169,6 @@ colnames(breakdown_targets) <- c(breakdown_targets %>% select(-contains("...")) 
                                  #for each date up to current distribution create one column name for each data element
                                  sapply(dates$END.DATE[1:distribution_i],
                                         function(x) paste(x, dataElements)))
-#Delete commented section below after code review
-# for(i in seq(from = 17, to = ncol(breakdown_targets), by = length(dataElements))){
-#   numbers <- seq(from = 17, to = ncol(breakdown_targets), by = length(dataElements))
-#   for(j in 1:length(numbers)){
-#     if(numbers[j] == i){
-#       k = j
-#     }
-#   }
-#   colnames(breakdown_targets)[i] <- paste(dates[k,1], dataElements[1])
-#   colnames(breakdown_targets)[i+1] <- paste(dates[k,1], dataElements[2])
-#   colnames(breakdown_targets)[i+2] <- paste(dates[k,1], dataElements[3])
-#   colnames(breakdown_targets)[i+3] <- paste(dates[k,1], dataElements[4])
-#   colnames(breakdown_targets)[i+4] <- paste(dates[k,1], dataElements[5])
-#   colnames(breakdown_targets)[i+5] <- paste(dates[k,1], dataElements[6])
-#   colnames(breakdown_targets)[i+6] <- paste(dates[k,1], dataElements[7])
-#   colnames(breakdown_targets)[i+7] <- paste(dates[k,1], dataElements[8])
-#   colnames(breakdown_targets)[i+8] <- paste(dates[k,1], dataElements[9])
-#   colnames(breakdown_targets)[i+9] <- paste(dates[k,1], dataElements[10])
-#   colnames(breakdown_targets)[i+10] <- paste(dates[k,1], dataElements[11])
-#   colnames(breakdown_targets)[i+11] <- paste(dates[k,1], dataElements[12])
-#   colnames(breakdown_targets)[i+12] <- paste(dates[k,1], dataElements[13])
-#   colnames(breakdown_targets)[i+13] <- paste(dates[k,1], dataElements[14])
-#   colnames(breakdown_targets)[i+14] <- paste(dates[k,1], dataElements[15])
-# }
-
 #take necessary columns
 breakdown_performance <-
   breakdown_targets[,c(1:9,17:ncol(breakdown_targets))] %>%
