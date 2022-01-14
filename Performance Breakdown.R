@@ -174,10 +174,7 @@ col_names <- c(breakdown_performance %>% select(-contains("...")) %>% colnames()
 #Quality check - does the number of columns in the data match the col_names
 if(length(col_names) != ncol(breakdown_performance)){
   stop("Missing data; report builder or data elements")
-} else {
-  colnames(breakdown_performance) <- col_names
-}
-
+} else { colnames(breakdown_performance) <- col_names}
 
 #take necessary columns
 breakdown_performance <-
