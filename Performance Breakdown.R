@@ -166,12 +166,18 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
-
 #keep the column names of all columns that do not contain pay period date data - columns containg "..." in name
-colnames(breakdown_performance) <- c(breakdown_performance %>% select(-contains("...")) %>% colnames(),
-                                 #for each date up to current distribution create one column name for each data element
-                                 sapply(dates$END.DATE[1:distribution_i],
-                                        function(x) paste(x, dataElements)))
+col_names <- c(breakdown_performance %>% select(-contains("...")) %>% colnames(),
+               #for each date up to current distribution create one column name for each data element
+               sapply(dates$END.DATE[1:distribution_i],
+                      function(x) paste(x, dataElements)))
+#Quality check - does the number of columns in the data match the col_names
+if(length(col_names) != ncol(breakdown_performance)){
+  stop("Missing data; report builder or data elements")
+} else {
+  colnames(breakdown_performance) <- col_names
+}
+
 
 #take necessary columns
 breakdown_performance <-
