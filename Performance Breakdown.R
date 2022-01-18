@@ -187,15 +187,15 @@ if(length(col_names) != ncol(breakdown_performance)){
 
 #take necessary columns
 breakdown_performance <-
-  breakdown_performance[,c(1:9,17:ncol(breakdown_performance))] %>%
+  breakdown_performance[,c(1:8,16:ncol(breakdown_performance))] %>%
   filter(duplicated(Code) == F)
 #create list for reporting period variance calculations
 variance <- list()
 #list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 10, to = ncol(breakdown_performance)-13, by = length(dataElements))
+index_sequence <- seq(from = 9, to = ncol(breakdown_performance)- (length(dataElements) - 1), by = length(dataElements))
 for(i in 1:length(index_sequence)){
   variance[[i]] <- cbind(
-    breakdown_performance[,index_sequence[i]:(index_sequence[i]+13)])
+    breakdown_performance[,index_sequence[i]:(index_sequence[i] + (length(dataElements) - 1))])
 }
 #save column names in seperate list
 columns <- list()
@@ -260,11 +260,11 @@ for(i in 1:length(variance)){
 
 #bind columns from breakdown_performance with variance list to create appendix
 breakdown_performance_appendix <- cbind(
-  breakdown_performance[,1:9],
+  breakdown_performance[,1:8],
   list.cbind(variance))
 #select only previous and current distribution for main deliverable
 breakdown_performance <- cbind(
-  breakdown_performance[,1:9],
+  breakdown_performance[,1:8],
   variance[[previous_distribution_i]],
   variance[[distribution_i]])
 
@@ -300,7 +300,7 @@ reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
                                  target_FTE$target_FTE - FTE$FTE,
                                  worked_hours$worked_hours/volume$volume) %>%
   #bring in target whpu
-  left_join(breakdown_performance[,c(4,6,9)],
+  left_join(select(breakdown_performance, Code, `Key Volume`, `Target WHpU`),
             by = c("Department.Reporting.Definition.ID" = "Code",
                    "Key.Volume" = "Key Volume")) %>%
   #calculate prod index for 6 time period average
