@@ -173,7 +173,16 @@ col_names <- c(breakdown_performance %>% select(-contains("...")) %>% colnames()
                       function(x) paste(x, dataElements)))
 #Quality check - does the number of columns in the data match the col_names
 if(length(col_names) != ncol(breakdown_performance)){
-  stop("Missing data; report builder or data elements")
+  #finding most recent date in report builder
+  recent_data <- colnames(breakdown_performance)[ncol(breakdown_performance)]
+  recent_date <- as.Date(substring(recent_data, 15, 24), format = "%m.%d.%Y")
+  #if most recent end date in report builder is less than current distribution
+  if(recent_date < as.Date(distribution, format = "%m/%d/%Y")){
+    stop("Missing Data; Report Builder does not include data for current distribution pay period")
+  }else{
+    stop("Missing Data; check data elements variable matches report builder")
+  }
+  #assign new column names if the # of columns match
 } else { colnames(breakdown_performance) <- col_names}
 
 #take necessary columns
