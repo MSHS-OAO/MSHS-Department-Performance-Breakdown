@@ -212,9 +212,10 @@ for(i in 1:length(index_sequence)){
 variance_test <- lapply(variance, function(x){
   new_col <- x %>% select(ends_with("FTE"), ends_with("Target FTEs"))
   new_col$FTE_Variance <- new_col[,1] - new_col[,2]
-  col_name <- substring(colnames(new_col)[1], first = 1, last = 9)
-  colnames(new_col)[3] <- paste(col_name, "FTE_Variance")
-  x <- cbind(x, select(new_col, contains("FTE_Variance")))
+  #new_col$PI <- round((new_col[,2] - new_col[,1]) * 100, 2)
+  col_name_date <- substring(colnames(new_col)[1], first = 1, last = 9)
+  colnames(new_col)[3:4] <- c(paste(col_name_date, "FTE_Variance"),paste(col_name_date, "PI"))
+  x <- cbind(x, select(new_col, contains("FTE_Variance", "PI")))
 })
                    
 #calculate reporting period PI
