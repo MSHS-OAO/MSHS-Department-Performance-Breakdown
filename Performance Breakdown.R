@@ -160,7 +160,7 @@ breakdown_performance <-
             by = c("Code" = "Department.Reporting.Definition.ID",
                    "Key Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
-dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
+dataElements <- c("Target FTEs", "FTE", "Volume", "Paid Hours",
                   "Target Labor Expense", "Labor Expense", "WHpU",
                   "Total Worked Hours", "Regular Hours", "Overtime Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
@@ -198,19 +198,25 @@ for(i in 1:length(index_sequence)){
     breakdown_performance[,index_sequence[i]:(index_sequence[i] + (length(dataElements) - 1))])
 }
 #save column names in seperate list
-columns <- list()
-for(i in 1:length(variance)){
-  columns[[i]] <- colnames(variance[[i]])
-  colnames(variance[[i]]) <- c("Target_FTE", "FTE", "Vol", "Paid_Hours",
-                               "Target_LE", "LE", "WHpU", "Worked_Hours",
-                               "Regular_Hours", "Overtime_Hours",
-                               "Education_Hours", "Orientation_Hours",
-                               "Agency_Hours", "Other_Worked_Hours",
-                               "Education_Orientation")
-}
+# columns <- list()
+# for(i in 1:length(variance)){
+#   columns[[i]] <- colnames(variance[[i]])
+#   colnames(variance[[i]]) <- c("Target_FTE", "FTE", "Vol", "Paid_Hours",
+#                                "Target_LE", "LE", "WHpU", "Worked_Hours",
+#                                "Regular_Hours", "Overtime_Hours",
+#                                "Education_Hours", "Orientation_Hours",
+#                                "Agency_Hours", "Other_Worked_Hours",
+#                                "Education_Orientation")
+# }
 #calculate reporting period Target FTE difference to baseline Target FTE
-variance <- lapply(variance, transform,
-                   FTE_Variance  = FTE - Target_FTE)
+variance_test <- lapply(variance, function(x){
+  new_col <- x %>% select(ends_with("FTE"), ends_with("Target FTEs"))
+  new_col$FTE_Variance <- new_col[,1] - new_col[,2]
+  col_name <- substring(colnames(new_col)[1], first = 1, last = 9)
+  colnames(new_col)[3] <- paste(col_name, "FTE_Variance")
+  x <- cbind(x, select(new_col, contains("FTE_Variance")))
+})
+                   
 #calculate reporting period PI
 variance <- lapply(variance, transform,
                    PI = round(Target_FTE/FTE * 100, digits = 2))
