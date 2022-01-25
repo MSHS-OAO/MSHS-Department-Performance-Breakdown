@@ -210,60 +210,86 @@ for(i in 1:length(index_sequence)){
 # }
 #calculate reporting period Target FTE difference to baseline Target FTE
 variance_test <- lapply(variance, function(x){
-  new_col <- x %>% select(ends_with("FTE"), ends_with("Target FTEs"))
-  new_col$FTE_Variance <- new_col[,1] - new_col[,2]
-  #new_col$PI <- round((new_col[,2] - new_col[,1]) * 100, 2)
-  col_name_date <- substring(colnames(new_col)[1], first = 1, last = 9)
-  colnames(new_col)[3:4] <- c(paste(col_name_date, "FTE_Variance"),paste(col_name_date, "PI"))
-  x <- cbind(x, select(new_col, contains("FTE_Variance", "PI")))
+  #calculate metrics for FTE Var, PI%, OT%, LE Index %, and target comparison 
+  new_col <- x %>% 
+    select(ends_with("FTE"),
+           ends_with("Target FTEs"),
+           contains("Overtime"),
+           contains("Paid"),
+           contains("Labor"))
+  initial_metrics <- ncol(new_col)
+  new_col <- new_col %>%
+    mutate(`FTE Variance` = new_col[,1] - new_col[,2],
+           `Productivity Index` = round(new_col[,2]/new_col[,1] * 100, 2),
+           `Overtime %` = round(new_col[,3]/new_col[,4] * 100, 2),
+           `LE Index` = round(new_col[,5]/new_col[,6] * 100, 2)) %>%
+    mutate(`Below Target/On Target/Above Target` = case_when(
+      is.na(`Productivity Index`) ~ "",
+      `Productivity Index` < 95 ~ "Below Target",
+      `Productivity Index` > 110 ~ "Above Target",
+      TRUE ~ "On Target"))
+  #take first 10 characters of the first column of new_col to get date
+  col_name_date <- substr(colnames(new_col)[1], 1, 10)
+  #paste reporting period date to corresponding variance element
+  colnames(new_col)[(initial_metrics+1):ncol(new_col)] <- 
+    sapply(colnames(new_col)[(initial_metrics+1):ncol(new_col)], function(x) {
+      paste(col_name_date, x)
+    })
+  #bind all metrics together in correct order
+  
+  #################################################################
+  #Discuss with Anjelica importance in order of metrics
+  #################################################################
+  x <- cbind()
+  
 })
                    
-#calculate reporting period PI
-variance <- lapply(variance, transform,
-                   PI = round(Target_FTE/FTE * 100, digits = 2))
-#calculate reporting period OT%
-variance <- lapply(variance, transform,
-                   OT = round(Overtime_Hours/Paid_Hours * 100, digits = 2))
-#calculate reporting period LE Index
-variance <- lapply(variance, transform,
-                   LE_Index = round(Target_LE/LE * 100, digits = 2))
-#calculate below target, on target, above target
-variance <- lapply(variance, transform,
-                   target = case_when(
-                     is.na(PI) ~ "",
-                     PI < 95 ~ "Below Target",
-                     PI > 110 ~ "Above Target",
-                     TRUE ~ "On Target"))
-#save full variance for roll up
-variance_roll <- variance
-
-#rearange variance list elements and replace column names
-for(i in 1:length(variance)){
-  variance[[i]] <- variance[[i]] %>%
-    select(Target_FTE, FTE, FTE_Variance, Vol, PI, OT, LE_Index, WHpU,
-           Worked_Hours, Regular_Hours, Overtime_Hours, Education_Hours,
-           Orientation_Hours, Agency_Hours, Other_Worked_Hours,
-           Education_Orientation, target)
-  colnames(variance[[i]]) <- c(
-    columns[[i]][1],
-    columns[[i]][2],
-    paste0(dates[i,1], " FTE Variance"),
-    columns[[i]][3],
-    paste0(dates[i,1], " Productivity Index"),
-    paste0(dates[i,1], " Overtime %"),
-    paste0(dates[i,1], " LE Index"),
-    columns[[i]][7],
-    columns[[i]][8],
-    columns[[i]][9],
-    columns[[i]][10],
-    columns[[i]][11],
-    columns[[i]][12],
-    columns[[i]][13],
-    columns[[i]][14],
-    columns[[i]][15],
-    paste0(dates[i,1], " Below Target/On Target/Above Target")
-    )
-}
+# #calculate reporting period PI
+# variance <- lapply(variance, transform,
+#                    PI = round(Target_FTE/FTE * 100, digits = 2))
+# #calculate reporting period OT%
+# variance <- lapply(variance, transform,
+#                    OT = round(Overtime_Hours/Paid_Hours * 100, digits = 2))
+# #calculate reporting period LE Index
+# variance <- lapply(variance, transform,
+#                    LE_Index = round(Target_LE/LE * 100, digits = 2))
+# #calculate below target, on target, above target
+# variance <- lapply(variance, transform,
+#                    target = case_when(
+#                      is.na(PI) ~ "",
+#                      PI < 95 ~ "Below Target",
+#                      PI > 110 ~ "Above Target",
+#                      TRUE ~ "On Target"))
+# #save full variance for roll up
+# variance_roll <- variance
+# 
+# #rearange variance list elements and replace column names
+# for(i in 1:length(variance)){
+#   variance[[i]] <- variance[[i]] %>%
+#     select(Target_FTE, FTE, FTE_Variance, Vol, PI, OT, LE_Index, WHpU,
+#            Worked_Hours, Regular_Hours, Overtime_Hours, Education_Hours,
+#            Orientation_Hours, Agency_Hours, Other_Worked_Hours,
+#            Education_Orientation, target)
+#   colnames(variance[[i]]) <- c(
+#     columns[[i]][1],
+#     columns[[i]][2],
+#     paste0(dates[i,1], " FTE Variance"),
+#     columns[[i]][3],
+#     paste0(dates[i,1], " Productivity Index"),
+#     paste0(dates[i,1], " Overtime %"),
+#     paste0(dates[i,1], " LE Index"),
+#     columns[[i]][7],
+#     columns[[i]][8],
+#     columns[[i]][9],
+#     columns[[i]][10],
+#     columns[[i]][11],
+#     columns[[i]][12],
+#     columns[[i]][13],
+#     columns[[i]][14],
+#     columns[[i]][15],
+#     paste0(dates[i,1], " Below Target/On Target/Above Target")
+#     )
+# }
 
 #bind columns from breakdown_performance with variance list to create appendix
 breakdown_performance_appendix <- cbind(
