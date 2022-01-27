@@ -193,8 +193,9 @@ breakdown_performance <-
 variance <- list()
 #list element for code, key volume and reporting period average stats for time periods
 variance <- lapply(pull(dates[1:distribution_i,]), function(x) {
-  breakdown_performance %>% select(Code, `Key Volume`,
-                                   contains(x))
+  breakdown_performance %>% 
+    select(Code, `Key Volume`, contains(x)) %>%
+    as.data.frame()
 })
 #calculate reporting period Target FTE difference to baseline Target FTE
 variance <- lapply(variance, function(x){
