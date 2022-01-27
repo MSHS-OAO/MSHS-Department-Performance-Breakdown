@@ -160,7 +160,7 @@ breakdown_performance <-
             by = c("Code" = "Department.Reporting.Definition.ID",
                    "Key Volume" = "Key.Volume"))
 #clean up column headers based on data element and pp end date
-dataElements <- c("Target FTEs", "FTE", "Volume", "Paid Hours",
+dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Target Labor Expense", "Labor Expense", "WHpU",
                   "Total Worked Hours", "Regular Hours", "Overtime Hours",
                   "Education Hours", "Orientation Hours", "Agency Hours",
@@ -209,18 +209,17 @@ for(i in 1:length(index_sequence)){
 #                                "Education_Orientation")
 # }
 #calculate reporting period Target FTE difference to baseline Target FTE
-variance_test <- lapply(variance, function(x){
+variance <- lapply(variance, function(x){
   #calculate metrics for FTE Var, PI%, OT%, LE Index %, and target comparison 
   new_col <- x %>% 
-    select(ends_with("FTE"),
-           ends_with("Target FTEs"),
+    select(contains("FTE"),
            contains("Overtime"),
            contains("Paid"),
            contains("Labor"))
   initial_metrics <- ncol(new_col)
   new_col <- new_col %>%
-    mutate(`FTE Variance` = new_col[,1] - new_col[,2],
-           `Productivity Index` = round(new_col[,2]/new_col[,1] * 100, 2),
+    mutate(`FTE Variance` = new_col[,2] - new_col[,1],
+           `Productivity Index` = round(new_col[,1]/new_col[,2] * 100, 2),
            `Overtime %` = round(new_col[,3]/new_col[,4] * 100, 2),
            `LE Index` = round(new_col[,5]/new_col[,6] * 100, 2)) %>%
     mutate(`Below Target/On Target/Above Target` = case_when(
@@ -236,11 +235,21 @@ variance_test <- lapply(variance, function(x){
       paste(col_name_date, x)
     })
   #bind all metrics together in correct order
-  
   #################################################################
   #Discuss with Anjelica importance in order of metrics
+  #Current columns that will be removed: Target FTE, Paid Hours
   #################################################################
-  x <- cbind()
+  x <- cbind(x, new_col[(initial_metrics+1):ncol(new_col)])
+  x <- cbind(select(x,
+                    contains("FTE"),
+                    contains("Volume"),
+                    contains("Productivity"),
+                    contains("Overtime %"),
+                    contains("LE Index"),
+                    contains("WHpU"),
+                    contains("Hours"),
+                    contains("Education & Orientation"),
+                    contains("Below Target")))
   
 })
                    
