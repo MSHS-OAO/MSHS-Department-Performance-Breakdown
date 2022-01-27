@@ -311,6 +311,51 @@ breakdown_performance <- cbind(
   variance[[distribution_i]])
 
 #Watchlist Criteria------------------------------------------------------------
+#create empty watchlist
+watchlist <- list()
+#create data frame where each row represents a needed metric for 6 pay periods
+last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
+                         function(x) {
+                           x <- paste0(substr(x, 1, 2), ".",
+                                  substr(x, 4, 5), ".",
+                                  substr(x, 7, 10))
+                           sub_scripts <- c(".1", ".2", ".3", ".4")
+                           sapply(sub_scripts, function(y) {
+                             paste0(x, y)
+                           })
+})
+#create the 4 watchlist elements for each needed metric
+watchlist <- apply(last_six_dates, 1, function(x) {
+  reportBuilder$watchlist[,] %>% select(contains(x))
+})
+#rename each list element
+names(watchlist) <- c("worked_hours", "volume", "fte", "target_fte")
+#calculate the 6 pp average for each department for each metric
+watchlist <- lapply(watchlist, function(x) {
+  x <- x %>%
+    mutate(average = round(rowMeans(.), 2))
+})
+#restructure the watchlist report builder for determing watchlist criteria
+test <- cbind(reportBuilder$watchlist %>%
+  select(Department.Reporting.Definition.ID,
+         Key.Volume,
+         (ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)),
+  worked_hours_average = watchlist$worked_hours$average,
+  volume_average = watchlist$volume$average,
+  fte_average = watchlist$fte$average,
+  target_fte_average = watchlist$target_fte$average) %>%
+  mutate(fte_variance = target_fte_average - fte_average,
+         whpu = worked_hours_average/volume_average) %>%
+  #bring in target whpu
+  left_join(select(breakdown_performance, Code, `Key Volume`, `Target WHpU`),
+            by = c("Department.Reporting.Definition.ID" = "Code",
+                   "Key.Volume" = "Key Volume")) %>%
+  #calculate prod index for 6 time period average
+  mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
+  rename(FTE_var = `target_FTE$target_FTE - FTE$FTE`)
+  
+
+
 #select past 6 time period worked hours and calculate average
 worked_hours <- reportBuilder$watchlist[,] %>%
   select(seq(from = ncol(reportBuilder$watchlist) - 59,
