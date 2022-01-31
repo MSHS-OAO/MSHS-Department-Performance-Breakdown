@@ -187,8 +187,11 @@ if(length(col_names) != ncol(breakdown_performance)){
 
 #take necessary columns
 breakdown_performance <-
-  select(breakdown_performance, -c('Corporation.Code':'Entity.Time.Period.Desc')) %>%
-  filter(duplicated(Code) == F)
+  select(breakdown_performance, -c(Corporation.Code, Corporation.Name, 
+                                   Entity.Code, Entity, 
+                                   Department.Reporting.Definition.Name, 
+                                   Mapped.Facility.Cost.Centers, 
+                                   Entity.Time.Period.Desc))
 
 #create list for reporting period variance calculations
 variance <- list()
