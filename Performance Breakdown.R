@@ -259,111 +259,90 @@ watchlist <- list()
 #create data frame where each row represents a needed metric for 6 pay periods
 last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
                          function(x) {
+                           #format past 6 time periods to report builder format
                            x <- paste0(substr(x, 1, 2), ".",
                                   substr(x, 4, 5), ".",
                                   substr(x, 7, 10))
-                           sub_scripts <- c(".1", ".2", ".3", ".4")
+                           #identify and paste 4 subscripts to each date
+                           sub_scripts <- c("", ".1", ".2", ".3")
                            sapply(sub_scripts, function(y) {
                              paste0(x, y)
                            })
-})
+                           })
 #create the 4 watchlist elements for each needed metric
 watchlist <- apply(last_six_dates, 1, function(x) {
-  reportBuilder$watchlist[,] %>% select(contains(x))
-})
+  reportBuilder$watchlist[,] %>% select(
+    Department.Reporting.Definition.ID,
+    Key.Volume,
+    ends_with(x))
+  })
 #rename each list element
-names(watchlist) <- c("worked_hours", "volume", "fte", "target_fte")
+watchlist_metrics <- c("worked_hours", "volume", "fte", "target_fte")
+names(watchlist) <- watchlist_metrics
 #calculate the 6 pp average for each department for each metric
-watchlist <- lapply(watchlist, function(x) {
-  x <- x %>%
-    mutate(average = round(rowMeans(.), 2))
-})
+watchlist <- lapply(seq_along(watchlist), function(x) {
+  watchlist[[x]] <- watchlist[[x]] %>%
+    mutate(!! paste0(names(watchlist)[x],"_average") := 
+             round(rowMeans(select(., where(is.double))), 2))
+  })
+names(watchlist) <- watchlist_metrics
+
 #restructure the watchlist report builder for determing watchlist criteria
-test <- cbind(reportBuilder$watchlist %>%
+colnames(reportBuilder$watchlist)[(ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)] <- 
+  c("Productivity Index", "FTE Variance")
+reportBuilder$watchlist <- reportBuilder$watchlist %>%
+  #select necessary columns from original report builder
   select(Department.Reporting.Definition.ID,
          Key.Volume,
-         (ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)),
-  worked_hours_average = watchlist$worked_hours$average,
-  volume_average = watchlist$volume$average,
-  fte_average = watchlist$fte$average,
-  target_fte_average = watchlist$target_fte$average) %>%
-  mutate(fte_variance = target_fte_average - fte_average,
-         whpu = worked_hours_average/volume_average) %>%
-  #bring in target whpu
-  left_join(select(breakdown_performance, Code, `Key Volume`, `Target WHpU`),
+         (ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)) %>%
+  left_join(breakdown_performance %>% select(Code, `Key Volume`, `Target WHpU`),
             by = c("Department.Reporting.Definition.ID" = "Code",
                    "Key.Volume" = "Key Volume")) %>%
-  #calculate prod index for 6 time period average
-  mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
-  rename(FTE_var = `target_FTE$target_FTE - FTE$FTE`)
-  
+  #join with each watchlist element
+  #worked hours
+  left_join(watchlist$worked_hours %>% select(Department.Reporting.Definition.ID,
+                                              Key.Volume,
+                                              contains("average"))) %>%
+  #volume
+  left_join(watchlist$volume %>% select(Department.Reporting.Definition.ID,
+                                              Key.Volume,
+                                        contains("average"))) %>%
+  #fte
+  left_join(watchlist$fte %>% select(Department.Reporting.Definition.ID,
+                                        Key.Volume,
+                                     contains("average"))) %>%
+  #target fte
+  left_join(watchlist$target_fte %>% select(Department.Reporting.Definition.ID,
+                                     Key.Volume,
+                                     contains("average"))) %>%
+  #calculate 6 pp fte variance and WHpU averages
+  mutate(fte_variance_average = target_fte_average - fte_average,
+         whpu_average = worked_hours_average/volume_average) %>%
+  #calculate 6 pp productivity index average
+  mutate(productivity_average = `Target WHpU`/whpu_average * 100) %>%
+  #logic for watchlist criteria
+  mutate(Watchlist = case_when(
+    is.na(fte_variance_average) | is.na(whpu_average) ~ "Missing Data",
+    (whpu_average > 110 | whpu_average < 95) & 
+      abs(fte_variance_average) > 1 ~ "Watchlist",
+    TRUE ~ "Acceptable")) %>%
+  mutate(`Productivity Index` = paste0(`Productivity Index`,"%"))
 
-
-#select past 6 time period worked hours and calculate average
-worked_hours <- reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 59,
-             to = ncol(reportBuilder$watchlist) - 9,
-             by = 10)) %>%
-  mutate(worked_hours = rowMeans(.))
-#select past 6 time period volume and calculate average
-volume <- reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 58,
-             to = ncol(reportBuilder$watchlist) - 8,
-             by = 10)) %>%
-  mutate(volume = rowMeans(.))
-#select past 6 time period FTEs and calculate average
-FTE <- reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 57,
-             to = ncol(reportBuilder$watchlist) - 7,
-             by = 10)) %>%
-  mutate(FTE = rowMeans(.))
-#select past 6 time period target FTEs and calculate average
-target_FTE <-  reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 56,
-             to = ncol(reportBuilder$watchlist) - 6,
-             by = 10)) %>%
-  mutate(target_FTE = rowMeans(.))
-#calculate 6 time period whpu average (ratio of averages)
-reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
-                                                            (ncol(reportBuilder$watchlist) - 1):
-                                                              ncol(reportBuilder$watchlist))],
-                                 target_FTE$target_FTE - FTE$FTE,
-                                 worked_hours$worked_hours/volume$volume) %>%
-  #bring in target whpu
-  left_join(select(breakdown_performance, Code, `Key Volume`, `Target WHpU`),
-            by = c("Department.Reporting.Definition.ID" = "Code",
-                   "Key.Volume" = "Key Volume")) %>%
-  #calculate prod index for 6 time period average
-  mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
-  rename(FTE_var = `target_FTE$target_FTE - FTE$FTE`)
-#logic for determining watchlist criteria
-reportBuilder$watchlist$Watchlist <- NA
-for(i in 2:nrow(reportBuilder$watchlist)){
-  if(is.na(reportBuilder$watchlist[i,8]) |
-     is.na(reportBuilder$watchlist[i,5])){
-    reportBuilder$watchlist$Watchlist[i] <- "Missing Data"
-  } else if((reportBuilder$watchlist[i,8]  > 110 |
-             reportBuilder$watchlist[i,8]  < 95)  &
-            abs(reportBuilder$watchlist[i,5]) > 1){
-    reportBuilder$watchlist$Watchlist[i] <- "Watchlist"
-  } else {
-    reportBuilder$watchlist$Watchlist[i] <- "Acceptable"
-  }
-}
-
-#Turn productivity indexes into percentages
-reportBuilder$watchlist[,3] <-
-  paste0(reportBuilder$watchlist[,3],
-         "%")
+##########################################################################
+#Might make sense to wait until right before formatting to join 
+#variance list elements, watchlist criteria, and comparison calculations
+#(below section)
+##########################################################################
 
 #join producticity index report builder
-breakdown_index <-
+breakdown_performance <-
   left_join(breakdown_performance,
-            reportBuilder$watchlist[,c(1,2,9,3,4)],
+            reportBuilder$watchlist %>% 
+              select(Department.Reporting.Definition.ID, Key.Volume, Watchlist,
+                     `Productivity Index`, `FTE Variance`),
             by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume")) %>%
-  #remove duplicated codes (DUS_09)
-  filter(duplicated(Code) == F)
+                 "Key Volume" = "Key.Volume")) 
+
 
 #Comparison Calculations-------------------------------------------------------
 breakdown_comparison <- breakdown_index %>%
