@@ -388,35 +388,13 @@ calculation_function <- function(df){
   df$`Labor Expense Index % Difference From Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "LE Index"))) - 
            select(df, contains(paste(distribution, "LE Index"))))
+  #Creating notes calculation
+  df <- df %>% mutate(Notes = "")
   return(df)
 }
-# breakdown_comparison <- left_join(variance[[previous_distribution_i]],
-#                                   variance[[distribution_i]])
-breakdown_comparison_Test <- calculation_function(left_join(variance[[previous_distribution_i]],
+#Applying calculations
+breakdown_comparison <- calculation_function(left_join(variance[[previous_distribution_i]],
                                                             variance[[distribution_i]]))
-
-  # mutate(
-  #   #Target FTE Calculations
-  #   Target_FTE_RP = variance[[distribution_i]][,1] -
-  #     variance[[previous_distribution_i]][,1],
-  #   #FTE Calculations
-  #   FTE_RP = variance[[distribution_i]][,2] -
-  #     variance[[previous_distribution_i]][,2],
-  #   #FTE Variance Calculations
-  #   FTE_Var_RP = variance[[distribution_i]][,3] -
-  #     variance[[previous_distribution_i]][,3],
-  #   #Volume Calculations
-  #   Vol_RP = variance[[distribution_i]][,4] -
-  #     variance[[previous_distribution_i]][,4],
-  #   #Productivity Index Calculations
-  #   PI_RP = variance[[distribution_i]][,5] -
-  #     variance[[previous_distribution_i]][,5],
-  #   #Overtime % Calculations
-  #   OT_RP = variance[[distribution_i]][,6] -
-  #     variance[[previous_distribution_i]][,6],
-  #   #Labor Expense Index Calculations
-  #   LE_RP = variance[[distribution_i]][,7] -
-  #     variance[[previous_distribution_i]][,7])
 
 #create and place columns for % Change in volume and FTEs compared to prev RP
 # breakdown_change <- breakdown_comparison %>%
@@ -429,27 +407,6 @@ breakdown_comparison_Test <- calculation_function(left_join(variance[[previous_d
 #          VCPn = paste0(round(VCPn, 4) * 100, "%")) %>%
 #   relocate(WFTECPn, .after = FTE_RP) %>%
 #   relocate(VCPn, .after = Vol_RP)
-
-#assign an empty vector to notes and bind it to the df
-breakdown_change <- breakdown_change %>%
-  mutate(Notes = "")
-
-#assign column names for productivity index columns
-# colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
-#   "Hospital",
-#   "Effective Date",
-#   "Productivity Index",
-#   "FTE Variance",
-#   "Target FTE Difference from Previous Distribution Period",
-#   "FTE Difference from Previous Distribution Period",
-#   "FTE % Change From Previous Distribution Period",
-#   "FTE Variance Difference from Previous Distribution Period",
-#   "Volume Difference from Previous Distribution Period",
-#   "Volume % Change From Previous Distribution Period",
-#   "Productivity Index % Difference From Previous Distribution Period",
-#   "Overtime % Difference From Previous Distribution Period",
-#   "Labor Expense Index % Difference From Previous Distribution Period",
-#   "Notes")
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
