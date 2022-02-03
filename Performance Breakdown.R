@@ -334,7 +334,7 @@ reportBuilder$watchlist <- reportBuilder$watchlist %>%
 #(below section)
 ##########################################################################
 
-#join producticity index report builder
+#join productivity index report builder
 breakdown_performance <-
   left_join(breakdown_performance,
             reportBuilder$watchlist %>% 
@@ -345,29 +345,76 @@ breakdown_performance <-
 
 
 #Comparison Calculations-------------------------------------------------------
-breakdown_comparison <- breakdown_index %>%
-  mutate(
-    #Target FTE Calculations
-    Target_FTE_RP = variance[[distribution_i]][,1] -
-      variance[[previous_distribution_i]][,1],
-    #FTE Calculations
-    FTE_RP = variance[[distribution_i]][,2] -
-      variance[[previous_distribution_i]][,2],
-    #FTE Variance Calculations
-    FTE_Var_RP = variance[[distribution_i]][,3] -
-      variance[[previous_distribution_i]][,3],
-    #Volume Calculations
-    Vol_RP = variance[[distribution_i]][,4] -
-      variance[[previous_distribution_i]][,4],
-    #Productivity Index Calculations
-    PI_RP = variance[[distribution_i]][,5] -
-      variance[[previous_distribution_i]][,5],
-    #Overtime % Calculations
-    OT_RP = variance[[distribution_i]][,6] -
-      variance[[previous_distribution_i]][,6],
-    #Labor Expense Index Calculations
-    LE_RP = variance[[distribution_i]][,7] -
-      variance[[previous_distribution_i]][,7])
+breakdown_comparison <- as.data.frame(left_join(variance[[previous_distribution_i]],
+                                  variance[[distribution_i]]))
+# breakdown_comparison_Test <- apply(breakdown_comparison, MARGIN = 1,
+#                                    FUN = function(x){
+#   x$`Target FTE Difference from Previous Distribution Period` = 
+#     select(x, contains(c(previous_distribution, "Target FTE"))) - select(x, contains(c(distribution, "Target FTE"))) 
+# })
+ 
+calculation_function <- function(df){
+  #Target FTE Calculations
+  df$`Target FTE Difference from Previous Distribution Period` <- 
+    (select(df, contains(paste(previous_distribution, "Target FTE"))) - 
+       select(df, contains(paste(distribution, "Target FTE"))))
+  #FTE Calculations
+  df$`FTE Difference from Previous Distribution Period` <- 
+    (select(df, ends_with(paste(previous_distribution, "FTE"))) - 
+       select(df, ends_with(paste(distribution, "FTE"))))
+  #FTE % Change Calculations
+  df$`FTE % Change From Previous Distribution Period` <- 
+   ((select(df, ends_with(paste(previous_distribution, "FTE"))) /
+       select(df, ends_with(paste(distribution, "FTE")))) - 1) * 100
+  df$`FTE % Change From Previous Distribution Period` <- 
+    apply(df$`FTE % Change From Previous Distribution Period`,
+          MARGIN = 2, function(x){paste0(round(x, 2), "%")})
+  #FTE Variance Calculations
+  df$`FTE Variance Difference from Previous Distribution Period` <- 
+    (select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
+       select(df, contains(paste(distribution, "FTE Variance"))))
+  #Volume Calculations
+  df$`Volume Difference from Previous Distribution Period` <- 
+    (select(df, contains(paste(previous_distribution, "Volume"))) - 
+       select(df, contains(paste(distribution, "Volume"))))
+  #Productivity Index Calculations
+  df$`Productivity Index % Difference From Previous Distribution Period` <- 
+    (select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
+       select(df, contains(paste(distribution, "Productivity Index"))))
+  #Overtime % Calculations
+  df$`Overtime % Difference From Previous Distribution Period` <- 
+    (select(df, contains(paste(previous_distribution, "Overtime %"))) - 
+       select(df, contains(paste(distribution, "Overtime %"))))
+  #Labor Expense Index Calculations
+  df$`Labor Expense Index % Difference From Previous Distribution Period` <- 
+    (select(df, contains(paste(previous_distribution, "LE Index"))) - 
+       select(df, contains(paste(distribution, "LE Index"))))
+  return(df)
+  }
+breakdown_comparison_Test <- calculation_function(breakdown_comparison)
+
+  # mutate(
+  #   #Target FTE Calculations
+  #   Target_FTE_RP = variance[[distribution_i]][,1] -
+  #     variance[[previous_distribution_i]][,1],
+  #   #FTE Calculations
+  #   FTE_RP = variance[[distribution_i]][,2] -
+  #     variance[[previous_distribution_i]][,2],
+  #   #FTE Variance Calculations
+  #   FTE_Var_RP = variance[[distribution_i]][,3] -
+  #     variance[[previous_distribution_i]][,3],
+  #   #Volume Calculations
+  #   Vol_RP = variance[[distribution_i]][,4] -
+  #     variance[[previous_distribution_i]][,4],
+  #   #Productivity Index Calculations
+  #   PI_RP = variance[[distribution_i]][,5] -
+  #     variance[[previous_distribution_i]][,5],
+  #   #Overtime % Calculations
+  #   OT_RP = variance[[distribution_i]][,6] -
+  #     variance[[previous_distribution_i]][,6],
+  #   #Labor Expense Index Calculations
+  #   LE_RP = variance[[distribution_i]][,7] -
+  #     variance[[previous_distribution_i]][,7])
 
 #create and place columns for % Change in volume and FTEs compared to prev RP
 breakdown_change <- breakdown_comparison %>%
