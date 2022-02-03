@@ -345,23 +345,17 @@ breakdown_performance <-
 
 
 #Comparison Calculations-------------------------------------------------------
-breakdown_comparison <- as.data.frame(left_join(variance[[previous_distribution_i]],
-                                  variance[[distribution_i]]))
-# breakdown_comparison_Test <- apply(breakdown_comparison, MARGIN = 1,
-#                                    FUN = function(x){
-#   x$`Target FTE Difference from Previous Distribution Period` = 
-#     select(x, contains(c(previous_distribution, "Target FTE"))) - select(x, contains(c(distribution, "Target FTE"))) 
-# })
- 
+breakdown_comparison <- left_join(variance[[previous_distribution_i]],
+                                  variance[[distribution_i]])
 calculation_function <- function(df){
   #Target FTE Calculations
   df$`Target FTE Difference from Previous Distribution Period` <- 
-    (select(df, contains(paste(previous_distribution, "Target FTE"))) - 
-       select(df, contains(paste(distribution, "Target FTE"))))
+    pull(select(df, contains(paste(previous_distribution, "Target FTE"))) - 
+           select(df, contains(paste(distribution, "Target FTE"))))
   #FTE Calculations
   df$`FTE Difference from Previous Distribution Period` <- 
-    (select(df, ends_with(paste(previous_distribution, "FTE"))) - 
-       select(df, ends_with(paste(distribution, "FTE"))))
+    pull(select(df, ends_with(paste(previous_distribution, "FTE"))) - 
+           select(df, ends_with(paste(distribution, "FTE"))))
   #FTE % Change Calculations
   df$`FTE % Change From Previous Distribution Period` <- 
    ((select(df, ends_with(paste(previous_distribution, "FTE"))) /
@@ -371,24 +365,31 @@ calculation_function <- function(df){
           MARGIN = 2, function(x){paste0(round(x, 2), "%")})
   #FTE Variance Calculations
   df$`FTE Variance Difference from Previous Distribution Period` <- 
-    (select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
-       select(df, contains(paste(distribution, "FTE Variance"))))
+    pull(select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
+           select(df, contains(paste(distribution, "FTE Variance"))))
   #Volume Calculations
   df$`Volume Difference from Previous Distribution Period` <- 
-    (select(df, contains(paste(previous_distribution, "Volume"))) - 
-       select(df, contains(paste(distribution, "Volume"))))
+    pull(select(df, contains(paste(previous_distribution, "Volume"))) - 
+           select(df, contains(paste(distribution, "Volume"))))
+  #Volume % Change Calculations
+  df$`Volume % Change From Previous Distribution Period` <- 
+    ((select(df, ends_with(paste(previous_distribution, "Volume"))) /
+        select(df, ends_with(paste(distribution, "Volume")))) - 1) * 100
+  df$`Volume % Change From Previous Distribution Period` <- 
+    apply(df$`Volume % Change From Previous Distribution Period`,
+          MARGIN = 2, function(x){paste0(round(x, 2), "%")})
   #Productivity Index Calculations
   df$`Productivity Index % Difference From Previous Distribution Period` <- 
-    (select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
-       select(df, contains(paste(distribution, "Productivity Index"))))
+    pull(select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
+           select(df, contains(paste(distribution, "Productivity Index"))))
   #Overtime % Calculations
   df$`Overtime % Difference From Previous Distribution Period` <- 
-    (select(df, contains(paste(previous_distribution, "Overtime %"))) - 
-       select(df, contains(paste(distribution, "Overtime %"))))
+    pull(select(df, contains(paste(previous_distribution, "Overtime %"))) - 
+           select(df, contains(paste(distribution, "Overtime %"))))
   #Labor Expense Index Calculations
   df$`Labor Expense Index % Difference From Previous Distribution Period` <- 
-    (select(df, contains(paste(previous_distribution, "LE Index"))) - 
-       select(df, contains(paste(distribution, "LE Index"))))
+    pull(select(df, contains(paste(previous_distribution, "LE Index"))) - 
+           select(df, contains(paste(distribution, "LE Index"))))
   return(df)
   }
 breakdown_comparison_Test <- calculation_function(breakdown_comparison)
