@@ -345,8 +345,6 @@ breakdown_performance <-
 
 
 #Comparison Calculations-------------------------------------------------------
-breakdown_comparison <- left_join(variance[[previous_distribution_i]],
-                                  variance[[distribution_i]])
 calculation_function <- function(df){
   #Target FTE Calculations
   df$`Target FTE Difference from Previous Distribution Period` <- 
@@ -391,8 +389,11 @@ calculation_function <- function(df){
     pull(select(df, contains(paste(previous_distribution, "LE Index"))) - 
            select(df, contains(paste(distribution, "LE Index"))))
   return(df)
-  }
-breakdown_comparison_Test <- calculation_function(breakdown_comparison)
+}
+# breakdown_comparison <- left_join(variance[[previous_distribution_i]],
+#                                   variance[[distribution_i]])
+breakdown_comparison_Test <- calculation_function(left_join(variance[[previous_distribution_i]],
+                                                            variance[[distribution_i]]))
 
   # mutate(
   #   #Target FTE Calculations
@@ -418,37 +419,37 @@ breakdown_comparison_Test <- calculation_function(breakdown_comparison)
   #     variance[[previous_distribution_i]][,7])
 
 #create and place columns for % Change in volume and FTEs compared to prev RP
-breakdown_change <- breakdown_comparison %>%
-  mutate(
-    VCPn = (variance[[distribution_i]][,4] /
-         variance[[previous_distribution_i]][,4]) - 1,
-    WFTECPn = (variance[[distribution_i]][,2] /
-         variance[[previous_distribution_i]][,2]) - 1) %>%
-  mutate(WFTECPn = paste0(round(WFTECPn, 4) * 100, "%"),
-         VCPn = paste0(round(VCPn, 4) * 100, "%")) %>%
-  relocate(WFTECPn, .after = FTE_RP) %>%
-  relocate(VCPn, .after = Vol_RP)
+# breakdown_change <- breakdown_comparison %>%
+#   mutate(
+#     VCPn = (variance[[distribution_i]][,4] /
+#          variance[[previous_distribution_i]][,4]) - 1,
+#     WFTECPn = (variance[[distribution_i]][,2] /
+#          variance[[previous_distribution_i]][,2]) - 1) %>%
+#   mutate(WFTECPn = paste0(round(WFTECPn, 4) * 100, "%"),
+#          VCPn = paste0(round(VCPn, 4) * 100, "%")) %>%
+#   relocate(WFTECPn, .after = FTE_RP) %>%
+#   relocate(VCPn, .after = Vol_RP)
 
 #assign an empty vector to notes and bind it to the df
 breakdown_change <- breakdown_change %>%
   mutate(Notes = "")
 
 #assign column names for productivity index columns
-colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
-  "Hospital",
-  "Effective Date",
-  "Productivity Index",
-  "FTE Variance",
-  "Target FTE Difference from Previous Distribution Period",
-  "FTE Difference from Previous Distribution Period",
-  "FTE % Change From Previous Distribution Period",
-  "FTE Variance Difference from Previous Distribution Period",
-  "Volume Difference from Previous Distribution Period",
-  "Volume % Change From Previous Distribution Period",
-  "Productivity Index % Difference From Previous Distribution Period",
-  "Overtime % Difference From Previous Distribution Period",
-  "Labor Expense Index % Difference From Previous Distribution Period",
-  "Notes")
+# colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
+#   "Hospital",
+#   "Effective Date",
+#   "Productivity Index",
+#   "FTE Variance",
+#   "Target FTE Difference from Previous Distribution Period",
+#   "FTE Difference from Previous Distribution Period",
+#   "FTE % Change From Previous Distribution Period",
+#   "FTE Variance Difference from Previous Distribution Period",
+#   "Volume Difference from Previous Distribution Period",
+#   "Volume % Change From Previous Distribution Period",
+#   "Productivity Index % Difference From Previous Distribution Period",
+#   "Overtime % Difference From Previous Distribution Period",
+#   "Labor Expense Index % Difference From Previous Distribution Period",
+#   "Notes")
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
