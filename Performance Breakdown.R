@@ -222,7 +222,7 @@ variance <- lapply(variance, function(x){
   #take first 10 characters of the first column of new_col to get date
   col_name_date <- substr(colnames(new_col)[3], 1, 10)
   #remove initial columns from variance element
-  new_col <- new_col[(initial_metrics+1):ncol(new_col)]
+  new_col <- new_col[(initial_metrics + 1):ncol(new_col)]
   #paste reporting period date to corresponding variance element
   colnames(new_col) <- sapply(colnames(new_col), function(x) {
       paste(col_name_date, x)
@@ -242,16 +242,6 @@ variance <- lapply(variance, function(x){
            contains("Education & Orientation"),
            contains("Below Target"))
 })
-
-# #bind columns from breakdown_performance with variance list to create appendix
-# breakdown_performance_appendix <- cbind(
-#   breakdown_performance[,1:8],
-#   list.cbind(variance))
-# #select only previous and current distribution for main deliverable
-# breakdown_performance <- cbind(
-#   breakdown_performance[,1:8],
-#   variance[[previous_distribution_i]],
-#   variance[[distribution_i]])
 
 #Watchlist Criteria------------------------------------------------------------
 #create empty watchlist
