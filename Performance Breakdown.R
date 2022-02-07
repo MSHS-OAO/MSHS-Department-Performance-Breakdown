@@ -186,12 +186,10 @@ if(length(col_names) != ncol(breakdown_performance)){
 } else { colnames(breakdown_performance) <- col_names}
 
 #take necessary columns
-breakdown_performance <-
-  select(breakdown_performance, -c(Corporation.Code, Corporation.Name, 
-                                   Entity.Code, Entity, 
-                                   Department.Reporting.Definition.Name, 
-                                   Mapped.Facility.Cost.Centers, 
-                                   Entity.Time.Period.Desc))
+breakdown_performance <- breakdown_performance %>%
+  select(-c(Corporation.Code, Corporation.Name, Entity.Code, Entity,
+            Department.Reporting.Definition.Name, Mapped.Facility.Cost.Centers,
+            Entity.Time.Period.Desc))
 
 #create list for reporting period variance calculations
 variance <- list()
