@@ -256,7 +256,10 @@ variance <- lapply(variance, function(x){
 #Watchlist Criteria------------------------------------------------------------
 #create empty watchlist
 watchlist <- list()
-#create data frame where each row represents a needed metric for 6 pay periods
+#4 metrics needed for watchlist criteria logic
+#order of metrics dependent on report builder structure
+watchlist_metrics <- c("worked_hours", "volume", "fte", "target_fte")
+#create data frame where each row represents a watchlist_metric for 6 pay periods
 last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
                          function(x) {
                            #format past 6 time periods to report builder format
@@ -276,8 +279,9 @@ watchlist <- apply(last_six_dates, 1, function(x) {
     Key.Volume,
     ends_with(x))
   })
-#rename each list element
-watchlist_metrics <- c("worked_hours", "volume", "fte", "target_fte")
+#######################
+#Add list element check for 8 columns
+#######################
 names(watchlist) <- watchlist_metrics
 #calculate the 6 pp average for each department for each metric
 watchlist <- lapply(seq_along(watchlist), function(x) {
@@ -286,7 +290,6 @@ watchlist <- lapply(seq_along(watchlist), function(x) {
              round(rowMeans(select(., where(is.double))), 2))
   })
 names(watchlist) <- watchlist_metrics
-
 #restructure the watchlist report builder for determing watchlist criteria
 colnames(reportBuilder$watchlist)[(ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)] <- 
   c("Productivity Index", "FTE Variance")
@@ -341,7 +344,7 @@ breakdown_performance <-
               select(Department.Reporting.Definition.ID, Key.Volume, Watchlist,
                      `Productivity Index`, `FTE Variance`),
             by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume")) 
+                 "Key Volume" = "Key.Volume"))
 
 
 #Comparison Calculations-------------------------------------------------------
