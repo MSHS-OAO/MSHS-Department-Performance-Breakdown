@@ -204,10 +204,12 @@ variance <- lapply(variance, function(x){
     #if any columns are added to variance, then indexes need to be adjusted 
     select(Code, 
            `Key Volume`,
-           contains("FTE"),
-           contains("Overtime"),
-           contains("Paid"),
-           contains("Labor"))
+           ends_with("Target FTE"),
+           ends_with("FTE"),
+           ends_with("Overtime Hours"),
+           ends_with("Paid Hours"),
+           ends_with("Target Labor Expense"),
+           ends_with("Labor Expense"))
   initial_metrics <- ncol(new_col)
   new_col <- new_col %>%
     mutate(`FTE Variance` = new_col[,4] - new_col[,3],
