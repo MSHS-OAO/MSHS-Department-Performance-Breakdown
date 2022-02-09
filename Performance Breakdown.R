@@ -321,22 +321,6 @@ reportBuilder$watchlist <- reportBuilder$watchlist %>%
     TRUE ~ "Acceptable")) %>%
   mutate(`Productivity Index` = paste0(`Productivity Index`,"%"))
 
-##########################################################################
-#Might make sense to wait until right before formatting to join 
-#variance list elements, watchlist criteria, and comparison calculations
-#(below section)
-##########################################################################
-
-#join productivity index report builder
-breakdown_performance <-
-  left_join(breakdown_performance,
-            reportBuilder$watchlist %>% 
-              select(Department.Reporting.Definition.ID, Key.Volume, Watchlist,
-                     `Productivity Index`, `FTE Variance`),
-            by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume"))
-
-
 #Comparison Calculations-------------------------------------------------------
 calculation_function <- function(df){
   #Target FTE Calculations
@@ -388,18 +372,6 @@ calculation_function <- function(df){
 #Applying calculations
 breakdown_comparison <- calculation_function(left_join(variance[[previous_distribution_i]],
                                                             variance[[distribution_i]]))
-
-#create and place columns for % Change in volume and FTEs compared to prev RP
-# breakdown_change <- breakdown_comparison %>%
-#   mutate(
-#     VCPn = (variance[[distribution_i]][,4] /
-#          variance[[previous_distribution_i]][,4]) - 1,
-#     WFTECPn = (variance[[distribution_i]][,2] /
-#          variance[[previous_distribution_i]][,2]) - 1) %>%
-#   mutate(WFTECPn = paste0(round(WFTECPn, 4) * 100, "%"),
-#          VCPn = paste0(round(VCPn, 4) * 100, "%")) %>%
-#   relocate(WFTECPn, .after = FTE_RP) %>%
-#   relocate(VCPn, .after = Vol_RP)
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
