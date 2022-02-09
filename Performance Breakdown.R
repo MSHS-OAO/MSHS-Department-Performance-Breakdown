@@ -186,212 +186,196 @@ if(length(col_names) != ncol(breakdown_performance)){
 } else { colnames(breakdown_performance) <- col_names}
 
 #take necessary columns
-breakdown_performance <-
-  breakdown_performance[,c(1:8,16:ncol(breakdown_performance))] %>%
-  filter(duplicated(Code) == F)
+breakdown_performance <- breakdown_performance %>%
+  select(-c(Corporation.Code, Corporation.Name, Entity.Code, Entity,
+            Department.Reporting.Definition.Name, Mapped.Facility.Cost.Centers,
+            Entity.Time.Period.Desc))
+
 #create list for reporting period variance calculations
 variance <- list()
-#list element for baseline and reporting period stats for all reporting periods
-index_sequence <- seq(from = 9, to = ncol(breakdown_performance)- (length(dataElements) - 1), by = length(dataElements))
-for(i in 1:length(index_sequence)){
-  variance[[i]] <- cbind(
-    breakdown_performance[,index_sequence[i]:(index_sequence[i] + (length(dataElements) - 1))])
-}
-#save column names in seperate list
-columns <- list()
-for(i in 1:length(variance)){
-  columns[[i]] <- colnames(variance[[i]])
-  colnames(variance[[i]]) <- c("Target_FTE", "FTE", "Vol", "Paid_Hours",
-                               "Target_LE", "LE", "WHpU", "Worked_Hours",
-                               "Regular_Hours", "Overtime_Hours",
-                               "Education_Hours", "Orientation_Hours",
-                               "Agency_Hours", "Other_Worked_Hours",
-                               "Education_Orientation")
-}
+#list element for code, key volume and reporting period average stats for time periods
+variance <- lapply(pull(dates[1:distribution_i,]), function(x) {
+  breakdown_performance %>% 
+    select(Code, `Key Volume`, contains(x)) %>%
+    as.data.frame()
+})
 #calculate reporting period Target FTE difference to baseline Target FTE
-variance <- lapply(variance, transform,
-                   FTE_Variance  = FTE - Target_FTE)
-#calculate reporting period PI
-variance <- lapply(variance, transform,
-                   PI = round(Target_FTE/FTE * 100, digits = 2))
-#calculate reporting period OT%
-variance <- lapply(variance, transform,
-                   OT = round(Overtime_Hours/Paid_Hours * 100, digits = 2))
-#calculate reporting period LE Index
-variance <- lapply(variance, transform,
-                   LE_Index = round(Target_LE/LE * 100, digits = 2))
-#calculate below target, on target, above target
-variance <- lapply(variance, transform,
-                   target = case_when(
-                     is.na(PI) ~ "",
-                     PI < 95 ~ "Below Target",
-                     PI > 110 ~ "Above Target",
-                     TRUE ~ "On Target"))
-#save full variance for roll up
-variance_roll <- variance
-
-#rearange variance list elements and replace column names
-for(i in 1:length(variance)){
-  variance[[i]] <- variance[[i]] %>%
-    select(Target_FTE, FTE, FTE_Variance, Vol, PI, OT, LE_Index, WHpU,
-           Worked_Hours, Regular_Hours, Overtime_Hours, Education_Hours,
-           Orientation_Hours, Agency_Hours, Other_Worked_Hours,
-           Education_Orientation, target)
-  colnames(variance[[i]]) <- c(
-    columns[[i]][1],
-    columns[[i]][2],
-    paste0(dates[i,1], " FTE Variance"),
-    columns[[i]][3],
-    paste0(dates[i,1], " Productivity Index"),
-    paste0(dates[i,1], " Overtime %"),
-    paste0(dates[i,1], " LE Index"),
-    columns[[i]][7],
-    columns[[i]][8],
-    columns[[i]][9],
-    columns[[i]][10],
-    columns[[i]][11],
-    columns[[i]][12],
-    columns[[i]][13],
-    columns[[i]][14],
-    columns[[i]][15],
-    paste0(dates[i,1], " Below Target/On Target/Above Target")
-    )
-}
-
-#bind columns from breakdown_performance with variance list to create appendix
-breakdown_performance_appendix <- cbind(
-  breakdown_performance[,1:8],
-  list.cbind(variance))
-#select only previous and current distribution for main deliverable
-breakdown_performance <- cbind(
-  breakdown_performance[,1:8],
-  variance[[previous_distribution_i]],
-  variance[[distribution_i]])
+variance <- lapply(variance, function(x){
+  #calculate metrics for FTE Var, PI%, OT%, LE Index %, and target comparison 
+  new_col <- x %>% 
+    #if any columns are added to variance, then indexes need to be adjusted 
+    select(Code, #Column 1
+           `Key Volume`, #Column 2
+           ends_with("Target FTE"), #Column 3
+           ends_with("FTE"), #Column 4
+           ends_with("Overtime Hours"), #Column 5
+           ends_with("Paid Hours"), #Column 6
+           ends_with("Target Labor Expense"), #Column 7
+           ends_with("Labor Expense")) #Column 8
+  initial_metrics <- ncol(new_col)
+  new_col <- new_col %>%
+    mutate(`FTE Variance` = new_col[,4] - new_col[,3],
+           `Productivity Index` = round(new_col[,3]/new_col[,4] * 100, 2),
+           `Overtime %` = round(new_col[,5]/new_col[,6] * 100, 2),
+           `LE Index` = round(new_col[,7]/new_col[,8] * 100, 2)) %>%
+    mutate(`Below Target/On Target/Above Target` = case_when(
+      is.na(`Productivity Index`) ~ "",
+      `Productivity Index` < 95 ~ "Below Target",
+      `Productivity Index` > 110 ~ "Above Target",
+      TRUE ~ "On Target"))
+  #take first 10 characters of the first column of new_col to get date
+  col_name_date <- substr(colnames(new_col)[3], 1, 10)
+  #remove initial columns from variance element
+  new_col <- new_col[(initial_metrics + 1):ncol(new_col)]
+  #paste reporting period date to corresponding variance element
+  colnames(new_col) <- sapply(colnames(new_col), function(x) {
+      paste(col_name_date, x)
+    })
+  #bind all metrics together in correct order
+  x <- cbind(x, new_col)
+  #use select funtion to properly arrange columns
+  x <- x %>% 
+    select(Code,
+           `Key Volume`,contains("FTE"),
+           contains("Volume"),
+           contains("Productivity"),
+           contains("Overtime %"),
+           contains("LE Index"),
+           contains("WHpU"),
+           contains("Hours"),
+           contains("Education & Orientation"),
+           contains("Below Target"))
+})
 
 #Watchlist Criteria------------------------------------------------------------
-#select past 6 time period worked hours and calculate average
-worked_hours <- reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 59,
-             to = ncol(reportBuilder$watchlist) - 9,
-             by = 10)) %>%
-  mutate(worked_hours = rowMeans(.))
-#select past 6 time period volume and calculate average
-volume <- reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 58,
-             to = ncol(reportBuilder$watchlist) - 8,
-             by = 10)) %>%
-  mutate(volume = rowMeans(.))
-#select past 6 time period FTEs and calculate average
-FTE <- reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 57,
-             to = ncol(reportBuilder$watchlist) - 7,
-             by = 10)) %>%
-  mutate(FTE = rowMeans(.))
-#select past 6 time period target FTEs and calculate average
-target_FTE <-  reportBuilder$watchlist[,] %>%
-  select(seq(from = ncol(reportBuilder$watchlist) - 56,
-             to = ncol(reportBuilder$watchlist) - 6,
-             by = 10)) %>%
-  mutate(target_FTE = rowMeans(.))
-#calculate 6 time period whpu average (ratio of averages)
-reportBuilder$watchlist <- cbind(reportBuilder$watchlist[,c(5,7,
-                                                            (ncol(reportBuilder$watchlist) - 1):
-                                                              ncol(reportBuilder$watchlist))],
-                                 target_FTE$target_FTE - FTE$FTE,
-                                 worked_hours$worked_hours/volume$volume) %>%
-  #bring in target whpu
-  left_join(select(breakdown_performance, Code, `Key Volume`, `Target WHpU`),
+#create empty watchlist
+watchlist <- list()
+#4 metrics needed for watchlist criteria logic
+#order of metrics dependent on report builder structure
+watchlist_metrics <- c("worked_hours", "volume", "fte", "target_fte")
+#create data frame where each row represents a watchlist_metric for 6 pay periods
+last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
+                         function(x) {
+                           #format past 6 time periods to report builder format
+                           x <- paste0(substr(x, 1, 2), ".",
+                                  substr(x, 4, 5), ".",
+                                  substr(x, 7, 10))
+                           #identify and paste 4 subscripts to each date
+                           sub_scripts <- c("", ".1", ".2", ".3")
+                           sapply(sub_scripts, function(y) {
+                             paste0(x, y)
+                           })
+                           })
+#create the 4 watchlist elements for each needed metric
+watchlist <- apply(last_six_dates, 1, function(x) {
+  reportBuilder$watchlist[,] %>% select(
+    Department.Reporting.Definition.ID,
+    Key.Volume,
+    ends_with(x))
+  })
+#######################
+#Add list element check for 8 columns
+#######################
+names(watchlist) <- watchlist_metrics
+#calculate the 6 pp average for each department for each metric
+watchlist <- lapply(seq_along(watchlist), function(x) {
+  watchlist[[x]] <- watchlist[[x]] %>%
+    mutate(!! paste0(names(watchlist)[x],"_average") := 
+             round(rowMeans(select(., where(is.double))), 2))
+  })
+names(watchlist) <- watchlist_metrics
+#restructure the watchlist report builder for determing watchlist criteria
+colnames(reportBuilder$watchlist)[(ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)] <- 
+  c("Productivity Index", "FTE Variance")
+reportBuilder$watchlist <- reportBuilder$watchlist %>%
+  #select necessary columns from original report builder
+  select(Department.Reporting.Definition.ID,
+         Key.Volume,
+         (ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)) %>%
+  left_join(breakdown_performance %>% select(Code, `Key Volume`, `Target WHpU`),
             by = c("Department.Reporting.Definition.ID" = "Code",
                    "Key.Volume" = "Key Volume")) %>%
-  #calculate prod index for 6 time period average
-  mutate(prod = `Target WHpU` / `worked_hours$worked_hours/volume$volume` * 100) %>%
-  rename(FTE_var = `target_FTE$target_FTE - FTE$FTE`)
-#logic for determining watchlist criteria
-reportBuilder$watchlist$Watchlist <- NA
-for(i in 2:nrow(reportBuilder$watchlist)){
-  if(is.na(reportBuilder$watchlist[i,8]) |
-     is.na(reportBuilder$watchlist[i,5])){
-    reportBuilder$watchlist$Watchlist[i] <- "Missing Data"
-  } else if((reportBuilder$watchlist[i,8]  > 110 |
-             reportBuilder$watchlist[i,8]  < 95)  &
-            abs(reportBuilder$watchlist[i,5]) > 1){
-    reportBuilder$watchlist$Watchlist[i] <- "Watchlist"
-  } else {
-    reportBuilder$watchlist$Watchlist[i] <- "Acceptable"
-  }
-}
-
-#Turn productivity indexes into percentages
-reportBuilder$watchlist[,3] <-
-  paste0(reportBuilder$watchlist[,3],
-         "%")
-
-#join producticity index report builder
-breakdown_index <-
-  left_join(breakdown_performance,
-            reportBuilder$watchlist[,c(1,2,9,3,4)],
-            by=c("Code" = "Department.Reporting.Definition.ID",
-                 "Key Volume" = "Key.Volume")) %>%
-  #remove duplicated codes (DUS_09)
-  filter(duplicated(Code) == F)
+  #join with each watchlist element
+  #worked hours
+  left_join(watchlist$worked_hours %>% select(Department.Reporting.Definition.ID,
+                                              Key.Volume,
+                                              contains("average"))) %>%
+  #volume
+  left_join(watchlist$volume %>% select(Department.Reporting.Definition.ID,
+                                              Key.Volume,
+                                        contains("average"))) %>%
+  #fte
+  left_join(watchlist$fte %>% select(Department.Reporting.Definition.ID,
+                                        Key.Volume,
+                                     contains("average"))) %>%
+  #target fte
+  left_join(watchlist$target_fte %>% select(Department.Reporting.Definition.ID,
+                                     Key.Volume,
+                                     contains("average"))) %>%
+  #calculate 6 pp fte variance and WHpU averages
+  mutate(fte_variance_average = target_fte_average - fte_average,
+         whpu_average = worked_hours_average/volume_average) %>%
+  #calculate 6 pp productivity index average
+  mutate(productivity_average = `Target WHpU`/whpu_average * 100) %>%
+  #logic for watchlist criteria
+  mutate(Watchlist = case_when(
+    is.na(fte_variance_average) | is.na(whpu_average) ~ "Missing Data",
+    (whpu_average > 110 | whpu_average < 95) & 
+      abs(fte_variance_average) > 1 ~ "Watchlist",
+    TRUE ~ "Acceptable")) %>%
+  mutate(`Productivity Index` = paste0(`Productivity Index`,"%"))
 
 #Comparison Calculations-------------------------------------------------------
-breakdown_comparison <- breakdown_index %>%
-  mutate(
-    #Target FTE Calculations
-    Target_FTE_RP = variance[[distribution_i]][,1] -
-      variance[[previous_distribution_i]][,1],
-    #FTE Calculations
-    FTE_RP = variance[[distribution_i]][,2] -
-      variance[[previous_distribution_i]][,2],
-    #FTE Variance Calculations
-    FTE_Var_RP = variance[[distribution_i]][,3] -
-      variance[[previous_distribution_i]][,3],
-    #Volume Calculations
-    Vol_RP = variance[[distribution_i]][,4] -
-      variance[[previous_distribution_i]][,4],
-    #Productivity Index Calculations
-    PI_RP = variance[[distribution_i]][,5] -
-      variance[[previous_distribution_i]][,5],
-    #Overtime % Calculations
-    OT_RP = variance[[distribution_i]][,6] -
-      variance[[previous_distribution_i]][,6],
-    #Labor Expense Index Calculations
-    LE_RP = variance[[distribution_i]][,7] -
-      variance[[previous_distribution_i]][,7])
-
-#create and place columns for % Change in volume and FTEs compared to prev RP
-breakdown_change <- breakdown_comparison %>%
-  mutate(
-    VCPn = (variance[[distribution_i]][,4] /
-         variance[[previous_distribution_i]][,4]) - 1,
-    WFTECPn = (variance[[distribution_i]][,2] /
-         variance[[previous_distribution_i]][,2]) - 1) %>%
-  mutate(WFTECPn = paste0(round(WFTECPn, 4) * 100, "%"),
-         VCPn = paste0(round(VCPn, 4) * 100, "%")) %>%
-  relocate(WFTECPn, .after = FTE_RP) %>%
-  relocate(VCPn, .after = Vol_RP)
-
-#assign an empty vector to notes and bind it to the df
-breakdown_change <- breakdown_change %>%
-  mutate(Notes = "")
-
-#assign column names for productivity index columns
-colnames(breakdown_change)[c(1,7,(ncol(breakdown_change)-11):ncol(breakdown_change))] <- c(
-  "Hospital",
-  "Effective Date",
-  "Productivity Index",
-  "FTE Variance",
-  "Target FTE Difference from Previous Distribution Period",
-  "FTE Difference from Previous Distribution Period",
-  "FTE % Change From Previous Distribution Period",
-  "FTE Variance Difference from Previous Distribution Period",
-  "Volume Difference from Previous Distribution Period",
-  "Volume % Change From Previous Distribution Period",
-  "Productivity Index % Difference From Previous Distribution Period",
-  "Overtime % Difference From Previous Distribution Period",
-  "Labor Expense Index % Difference From Previous Distribution Period",
-  "Notes")
+calculation_function <- function(df){
+  #Target FTE Calculations
+  df$`Target FTE Difference from Previous Distribution Period` <- 
+    pull(select(df, contains(paste(previous_distribution, "Target FTE"))) - 
+           select(df, contains(paste(distribution, "Target FTE"))))
+  #FTE Calculations
+  df$`FTE Difference from Previous Distribution Period` <- 
+    pull(select(df, ends_with(paste(previous_distribution, "FTE"))) - 
+           select(df, ends_with(paste(distribution, "FTE"))))
+  #FTE % Change Calculations
+  df$`FTE % Change From Previous Distribution Period` <- 
+   ((select(df, ends_with(paste(previous_distribution, "FTE"))) /
+       select(df, ends_with(paste(distribution, "FTE")))) - 1) * 100
+  df$`FTE % Change From Previous Distribution Period` <- 
+    apply(df$`FTE % Change From Previous Distribution Period`,
+          MARGIN = 2, function(x){paste0(round(x, 2), "%")})
+  #FTE Variance Calculations
+  df$`FTE Variance Difference from Previous Distribution Period` <- 
+    pull(select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
+           select(df, contains(paste(distribution, "FTE Variance"))))
+  #Volume Calculations
+  df$`Volume Difference from Previous Distribution Period` <- 
+    pull(select(df, contains(paste(previous_distribution, "Volume"))) - 
+           select(df, contains(paste(distribution, "Volume"))))
+  #Volume % Change Calculations
+  df$`Volume % Change From Previous Distribution Period` <- 
+    ((select(df, ends_with(paste(previous_distribution, "Volume"))) /
+        select(df, ends_with(paste(distribution, "Volume")))) - 1) * 100
+  df$`Volume % Change From Previous Distribution Period` <- 
+    apply(df$`Volume % Change From Previous Distribution Period`,
+          MARGIN = 2, function(x){paste0(round(x, 2), "%")})
+  #Productivity Index Calculations
+  df$`Productivity Index % Difference From Previous Distribution Period` <- 
+    pull(select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
+           select(df, contains(paste(distribution, "Productivity Index"))))
+  #Overtime % Calculations
+  df$`Overtime % Difference From Previous Distribution Period` <- 
+    pull(select(df, contains(paste(previous_distribution, "Overtime %"))) - 
+           select(df, contains(paste(distribution, "Overtime %"))))
+  #Labor Expense Index Calculations
+  df$`Labor Expense Index % Difference From Previous Distribution Period` <- 
+    pull(select(df, contains(paste(previous_distribution, "LE Index"))) - 
+           select(df, contains(paste(distribution, "LE Index"))))
+  #Creating notes calculation
+  df <- df %>% mutate(Notes = "")
+  return(df)
+}
+#Applying calculations
+breakdown_comparison <- calculation_function(left_join(variance[[previous_distribution_i]],
+                                                            variance[[distribution_i]]))
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
