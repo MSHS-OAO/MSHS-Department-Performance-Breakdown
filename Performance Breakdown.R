@@ -273,10 +273,21 @@ watchlist <- apply(last_six_dates, 1, function(x) {
     Key.Volume,
     ends_with(x))
   })
-#######################
-#Add list element check for 8 columns
-#######################
+#Apply watchlist_metric name to each respective watchlist element
 names(watchlist) <- watchlist_metrics
+#check that each watchlist element has 6 numeric columns for each pp end date
+six_date_check <- sapply(watchlist, function(x) {
+  #get number of numeric columns in watchlist element
+  six_date_check <- ncol(x %>% select(., where(is.double)))
+  #compare number of numeric columns in watchlist element to number of dates
+  if(six_date_check != ncol(last_six_dates)) {
+    #if they are not equal then get set difference from expected dates and watchlist element dates
+    error <- setdiff(colnames(last_six_dates), 
+                     colnames(x %>% select(., where(is.double))))
+    #stop script and report to user what end date is missing in report builder
+    stop(paste(error, "not found in watchlist report builder"))
+  }
+})
 #calculate the 6 pp average for each department for each metric
 watchlist <- lapply(seq_along(watchlist), function(x) {
   watchlist[[x]] <- watchlist[[x]] %>%
