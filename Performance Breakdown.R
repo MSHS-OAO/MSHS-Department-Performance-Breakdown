@@ -201,17 +201,19 @@ variance <- lapply(pull(dates[1:distribution_i,]), function(x) {
 })
 #calculate reporting period Target FTE difference to baseline Target FTE
 variance <- lapply(variance, function(x){
+  #take first 10 characters of the third column in variance$x to get the date
+  col_name_date <- substr(colnames(x)[3], 1, 10)
   #calculate metrics for FTE Var, PI%, OT%, LE Index %, and target comparison 
-  new_col <- x %>% 
+  new_col <- variance[[1]] %>% 
     #if any columns are added to variance, then indexes need to be adjusted 
     select(Code, #Column 1
            `Key Volume`, #Column 2
-           ends_with("Target FTE"), #Column 3
-           ends_with("FTE"), #Column 4
-           ends_with("Overtime Hours"), #Column 5
-           ends_with("Paid Hours"), #Column 6
-           ends_with("Target Labor Expense"), #Column 7
-           ends_with("Labor Expense")) #Column 8
+           matches(paste(col_name_date, "Target FTE")), #Column 3
+           matches(paste(col_name_date, "FTE")), #Column 4
+           matches(paste(col_name_date,"Overtime Hours")), #Column 5
+           matches(paste(col_name_date,"Paid Hours")), #Column 6
+           matches(paste(col_name_date,"Target Labor Expense")), #Column 7
+           matches(paste(col_name_date,"Labor Expense"))) #Column 8
   initial_metrics <- ncol(new_col)
   new_col <- new_col %>%
     mutate(`FTE Variance` = new_col[,4] - new_col[,3],
@@ -223,8 +225,6 @@ variance <- lapply(variance, function(x){
       `Productivity Index` < 95 ~ "Below Target",
       `Productivity Index` > 110 ~ "Above Target",
       TRUE ~ "On Target"))
-  #take first 10 characters of the first column of new_col to get date
-  col_name_date <- substr(colnames(new_col)[3], 1, 10)
   #remove initial columns from variance element
   new_col <- new_col[(initial_metrics + 1):ncol(new_col)]
   #paste reporting period date to corresponding variance element
