@@ -204,7 +204,7 @@ variance <- lapply(variance, function(x){
   #take first 10 characters of the third column in variance$x to get the date
   col_name_date <- substr(colnames(x)[3], 1, 10)
   #calculate metrics for FTE Var, PI%, OT%, LE Index %, and target comparison 
-  new_col <- variance[[1]] %>% 
+  new_col <- x %>% 
     #if any columns are added to variance, then indexes need to be adjusted 
     select(Code, #Column 1
            `Key Volume`, #Column 2
@@ -215,6 +215,9 @@ variance <- lapply(variance, function(x){
            matches(paste(col_name_date,"Target Labor Expense")), #Column 7
            matches(paste(col_name_date,"Labor Expense"))) #Column 8
   initial_metrics <- ncol(new_col)
+  #Check if the correct number of columns are selected from above
+  if(initial_metrics != 8){
+    stop("Unexpected number of columns selected in variance variable")}
   new_col <- new_col %>%
     mutate(`FTE Variance` = new_col[,4] - new_col[,3],
            `Productivity Index` = round(new_col[,3]/new_col[,4] * 100, 2),
