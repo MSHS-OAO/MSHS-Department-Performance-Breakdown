@@ -15,8 +15,8 @@ roll <- definitions %>%
 roll_up_list <- list(
   vp = roll %>% 
     group_by(Hospital, VP) %>%
-    summarise(across(where(is.numeric), sum)),
+    summarise(across(where(is.numeric), sum, na.rm = T)),
   corporate = roll %>% 
     group_by(Hospital, `Corporate Service Line`) %>%
-    summarise(across(where(is.numeric), sum))
+    summarise(across(where(is.numeric), sum, na.rm = T))
 )
