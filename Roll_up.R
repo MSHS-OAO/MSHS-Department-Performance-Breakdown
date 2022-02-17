@@ -10,3 +10,17 @@ roll <- definitions %>%
          -contains("WHpU"),
          -contains("Education & Orientation %"),
          -contains("Below Target/On Target/Above Target"))
+
+#Creates two data tables in a list (VP and Corporate)
+roll_up_list <- list(
+  vp = roll %>% 
+    group_by(Hospital, VP) %>%
+    summarise(across([[previous_distribution]]Target FTE : 
+                       [[distribution]]Other Worked Hours),
+              ~ sum(., na.rm = T)),
+  corporate = roll %>% 
+    group_by(Hospital, `Corporate Service Line`) %>%
+    summarise(across([[previous_distribution]]Target FTE : 
+                       [[distribution]]Other Worked Hours),
+              ~ sum(., na.rm = T))
+)
