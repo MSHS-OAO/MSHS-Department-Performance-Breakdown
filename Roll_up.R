@@ -25,83 +25,85 @@ roll <- list(
 
 
 # Percentage Calc Function -----------------------------------------------
-gen_pct <- function(x, result, numer1, numer2 = NA, denom) {
-  
-  # 
-  
-  prefix <- substr(colnames(x)[3], 1, 10)
-  
-    numer <- if (is.na(numer2)) {
-    x[[paste(prefix, numer1)]]
+gen_pct <- function(x, result, numer1, numer2 = NA, denom, dates) {
+  if (is.na(numer2)){
+    numer_i <- x[, paste(dates[1], numer1)]
+    numer_ii <- x[, paste(dates[2], numer1)]
   } else {
-    x[[paste(prefix, numer1)]] + x[[paste(prefix, numer2)]]
-  }
+    numer_i <- x[, paste(dates[1], numer1)] + x[, paste(dates[1], numer2)]
+    numer_ii <- x[, paste(dates[2], numer1)] + x[, paste(dates[2], numer2)]}
+  
 
-  x[[paste(prefix, result)]] <-
-    (numer / x[[paste(prefix, denom)]]) * 100
+  x[, paste(dates[1], result)] <-
+    ((numer_i / x[, paste(dates[1], denom)]) * 100)
+  
+  x[, paste(dates[2], result)] <-
+    ((numer_i / x[, paste(dates[2], denom)]) * 100)
 
   return(x)
 }
 
 
 # Percentage Calculation --------------------------------------------------
-for (date in c(previous_distribution, distribution)) {
-  roll <- lapply(roll, function(x) {
-
-
-    x <- gen_pct(
-      x,
-      result = "Productivity Index",
-      numer1 = "Target FTE",
-      denom = "FTE"
-    )
-
-    x <- gen_pct(
-      x,
-      result = "Overtime %",
-      numer1 = "Overtime Hours",
-      denom = "Paid Hours"
-    )
-
-    # Need to add calculation for Labor Expense Index
-    # gen_pct(
-    #   x,
-    #   result = "LE Index",
-    #   numer1 = "Target LE",
-    #   denom = "LE"
-    # )
-
-    x <- gen_pct(
-      x,
-      result = "Education & Orientation %",
-      numer1 = "Education Hours",
-      numer2 = "Orientation Hours",
-      denom = "Paid Hours"
-    )
-    return(x)
-  })
-}
+# for (date in c(previous_distribution, distribution)) {
+#   roll_o <- lapply(roll, function(x) {
+# 
+# 
+#     x <- gen_pct(
+#       x,
+#       result = "Productivity Index",
+#       numer1 = "Target FTE",
+#       denom = "FTE"
+#     )
+# 
+#     x <- gen_pct(
+#       x,
+#       result = "Overtime %",
+#       numer1 = "Overtime Hours",
+#       denom = "Paid Hours"
+#     )
+# 
+#     # Need to add calculation for Labor Expense Index
+#     # gen_pct(
+#     #   x,
+#     #   result = "LE Index",
+#     #   numer1 = "Target LE",
+#     #   denom = "LE"
+#     # )
+# 
+#     x <- gen_pct(
+#       x,
+#       result = "Education & Orientation %",
+#       numer1 = "Education Hours",
+#       numer2 = "Orientation Hours",
+#       denom = "Paid Hours"
+#     )
+#     return(x)
+#   })
+# }
 
 
 # Percentage Calculation Nested Apply-------------------------------------------
 
-# roll_calc_inputs <- cbind(
-#   set1 = c("Productivity Index", "Target FTE", "FTE", "NA"),
-#   # c("Overtime %", ),
-#   # c(),
-#   set2 = c("Overtime %", "Overtime Hours", "Paid Hours", "NA")
-# )
+roll_calc_inputs <- cbind(
+  c("Productivity Index", "Target FTE", "FTE", NA),
+  # c("Overtime %", ),
+  # c(),
+  c("Overtime %", "Overtime Hours", "Paid Hours", NA)
+)
 
-  # roll2 <- lapply(roll, function(x) 
-  #   sapply(1:length(roll_calc_inputs), function(y) 
-  #     gen_pct(x,
-  #       result = roll_calc_inputs[1, y],
-  #       numer1 = roll_calc_inputs[2, y],
-  #       denom = roll_calc_inputs[3, y],
-  #       numer2 = roll_calc_inputs[4, y]
-  #       )
-  #   )
-  #   )
+  roll2 <- lapply(roll, function(x)
+    do.call(
+      left_join,
+      lapply(1:ncol(roll_calc_inputs), function(y)
+        gen_pct(x,
+                result = roll_calc_inputs[1, y],
+                numer1 = roll_calc_inputs[2, y],
+                denom = roll_calc_inputs[3, y],
+                numer2 = roll_calc_inputs[4, y],
+                dates = c(previous_distribution, distribution))
+      ))
+    )
     
     
     # Need to add calculation for Labor Expense Index
