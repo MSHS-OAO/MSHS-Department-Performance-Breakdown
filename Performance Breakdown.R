@@ -244,7 +244,9 @@ variance <- lapply(variance, function(x){
            contains("WHpU"),
            contains("Hours"),
            contains("Education & Orientation"),
-           contains("Below Target"))
+           contains("Below Target"),
+           contains("Target Labor Expense"),
+           contains("Labor Expense"))
 })
 
 #Watchlist Criteria------------------------------------------------------------

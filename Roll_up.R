@@ -14,7 +14,7 @@ roll <- definitions %>%
   )
 
 # create list made of both roll ups --------------------------------------
-roll_up_list <- list(
+roll <- list(
   vp = roll %>%
     group_by(Hospital, VP) %>%
     summarise(across(where(is.numeric), sum, na.rm = T)),
@@ -25,9 +25,11 @@ roll_up_list <- list(
 
 
 # Percentage Calc Function -----------------------------------------------
-gen_pct <- function(x, result, prefix, numer1, numer2 = NA, denom) {
+gen_pct <- function(x, result, numer1, numer2 = NA, denom) {
   
-  # alternatively, set default numer2 = 0 and get rid of if()else()?
+  # 
+  
+  prefix <- substr(colnames(x)[3], 1, 10)
   
     numer <- if (is.na(numer2)) {
     x[[paste(prefix, numer1)]]
@@ -44,11 +46,12 @@ gen_pct <- function(x, result, prefix, numer1, numer2 = NA, denom) {
 
 # Percentage Calculation --------------------------------------------------
 for (date in c(previous_distribution, distribution)) {
-  roll_up_list <- lapply(roll_up_list, function(x) {
+  roll <- lapply(roll, function(x) {
+
+
     x <- gen_pct(
       x,
       result = "Productivity Index",
-      prefix = date,
       numer1 = "Target FTE",
       denom = "FTE"
     )
@@ -56,7 +59,6 @@ for (date in c(previous_distribution, distribution)) {
     x <- gen_pct(
       x,
       result = "Overtime %",
-      prefix = date,
       numer1 = "Overtime Hours",
       denom = "Paid Hours"
     )
@@ -65,7 +67,6 @@ for (date in c(previous_distribution, distribution)) {
     # gen_pct(
     #   x,
     #   result = "LE Index",
-    #   prefix = date,
     #   numer1 = "Target LE",
     #   denom = "LE"
     # )
@@ -73,7 +74,6 @@ for (date in c(previous_distribution, distribution)) {
     x <- gen_pct(
       x,
       result = "Education & Orientation %",
-      prefix = date,
       numer1 = "Education Hours",
       numer2 = "Orientation Hours",
       denom = "Paid Hours"
@@ -81,6 +81,42 @@ for (date in c(previous_distribution, distribution)) {
     return(x)
   })
 }
+
+
+# Percentage Calculation Nested Apply-------------------------------------------
+
+# roll_calc_inputs <- cbind(
+#   set1 = c("Productivity Index", "Target FTE", "FTE", "NA"),
+#   # c("Overtime %", ),
+#   # c(),
+#   set2 = c("Overtime %", "Overtime Hours", "Paid Hours", "NA")
+# )
+
+  # roll2 <- lapply(roll, function(x) 
+  #   sapply(1:length(roll_calc_inputs), function(y) 
+  #     gen_pct(x,
+  #       result = roll_calc_inputs[1, y],
+  #       numer1 = roll_calc_inputs[2, y],
+  #       denom = roll_calc_inputs[3, y],
+  #       numer2 = roll_calc_inputs[4, y]
+  #       )
+  #   )
+  #   )
+    
+    
+    # Need to add calculation for Labor Expense Index
+    # gen_pct(
+    #   x,
+    #   result = "LE Index",
+    #   numer1 = "Target LE",
+    #   denom = "LE"
+    # )
+    
+
+#     )
+#     return(x)
+#   })
+# }
 
 # Difference Calc Functions -----------------------------------------------
 gen_diff <- function(x, metric, pre, post) {
@@ -99,7 +135,7 @@ gen_diff <- function(x, metric, pre, post) {
 # }
 
 # Difference Calculation --------------------------------------------------
-roll_up_list <- lapply(roll_up_list, function(x) {
+roll <- lapply(roll, function(x) {
   prev_d <- previous_distribution
   post_d <- distribution
 
@@ -168,7 +204,7 @@ roll_up_list <- lapply(roll_up_list, function(x) {
 })
 
 # Finalizing Column Order -------------------------------------------------
-roll_up_list <- roll_up_list %>% lapply(function(x) {
+roll <- roll %>% lapply(function(x) {
   
   col_field_order <- c(
     "Target FTE", "FTE", "FTE Variance", "Productivity Index", "Overtime %",
@@ -199,7 +235,7 @@ roll_up_list <- roll_up_list %>% lapply(function(x) {
 })
 
 # Creating Notes Column ---------------------------------------------------
-roll_up_list <- lapply(roll_up_list, function(x) {
+roll <- lapply(roll, function(x) {
   x <- x %>% mutate(Notes = "")
   return(x)
 })
