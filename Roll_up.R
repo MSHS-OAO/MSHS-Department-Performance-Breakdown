@@ -92,7 +92,7 @@ roll_calc_inputs <- cbind(
   c("Overtime %", "Overtime Hours", "Paid Hours", NA)
 )
 
-  roll2 <- lapply(roll, function(x)
+  roll <- lapply(roll, function(x)
     do.call(
       left_join,
       lapply(1:ncol(roll_calc_inputs), function(y)
