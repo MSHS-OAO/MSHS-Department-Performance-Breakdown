@@ -74,10 +74,8 @@ roll_calc_inputs <- cbind(
   c("Productivity Index", "Target FTE", "FTE", NA),
   c("LE Index", "Target Labor Expense", "Labor Expense", NA),
   c("Overtime %", "Overtime Hours", "Paid Hours", NA),
-  c(
-    "Education & Orientation %", "Education Hours", "Paid Hours",
-    "Orientation Hours"
-  )
+  c("Education & Orientation %", "Education Hours", "Paid Hours",
+    "Orientation Hours")
 )
 # would be better to reorder the entry items
 # so numerator1 is next to numerator2?
