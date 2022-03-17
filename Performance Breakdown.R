@@ -201,7 +201,7 @@ variance <- lapply(pull(dates[1:distribution_i,]), function(x) {
 })
 #calculate reporting period Target FTE difference to baseline Target FTE
 variance <- lapply(variance, function(x){
-  #calculate metrics for FTE Var, PI%, OT%, LE Index %, and target comparison 
+  #calculate metrics for FTE Var, PI%, OT%, Labor Expense Index, and target comparison 
   new_col <- x %>% 
     #if any columns are added to variance, then indexes need to be adjusted 
     select(Code, #Column 1
@@ -217,7 +217,7 @@ variance <- lapply(variance, function(x){
     mutate(`FTE Variance` = new_col[,4] - new_col[,3],
            `Productivity Index` = round(new_col[,3]/new_col[,4] * 100, 2),
            `Overtime %` = round(new_col[,5]/new_col[,6] * 100, 2),
-           `LE Index` = round(new_col[,7]/new_col[,8] * 100, 2)) %>%
+           `Labor Expense Index` = round(new_col[,7]/new_col[,8] * 100, 2)) %>%
     mutate(`Below Target/On Target/Above Target` = case_when(
       is.na(`Productivity Index`) ~ "",
       `Productivity Index` < 95 ~ "Below Target",
@@ -240,11 +240,13 @@ variance <- lapply(variance, function(x){
            contains("Volume"),
            contains("Productivity"),
            contains("Overtime %"),
-           contains("LE Index"),
+           contains("Labor Expense Index"),
            contains("WHpU"),
            contains("Hours"),
            contains("Education & Orientation"),
-           contains("Below Target"))
+           contains("Below Target"),
+           contains("Target Labor Expense"),
+           contains("Labor Expense"))
 })
 
 #Watchlist Criteria------------------------------------------------------------
@@ -339,11 +341,11 @@ reportBuilder$watchlist <- reportBuilder$watchlist %>%
 #Comparison Calculations-------------------------------------------------------
 calculation_function <- function(df){
   #Target FTE Calculations
-  df$`Target FTE Difference from Previous Distribution Period` <- 
+  df$`Target FTE: Difference from Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "Target FTE"))) - 
            select(df, contains(paste(distribution, "Target FTE"))))
   #FTE Calculations
-  df$`FTE Difference from Previous Distribution Period` <- 
+  df$`FTE Difference: from Previous Distribution Period` <- 
     pull(select(df, ends_with(paste(previous_distribution, "FTE"))) - 
            select(df, ends_with(paste(distribution, "FTE"))))
   #FTE % Change Calculations
@@ -354,11 +356,11 @@ calculation_function <- function(df){
     apply(df$`FTE % Change From Previous Distribution Period`,
           MARGIN = 2, function(x){paste0(round(x, 2), "%")})
   #FTE Variance Calculations
-  df$`FTE Variance Difference from Previous Distribution Period` <- 
+  df$`FTE Variance: Difference from Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
            select(df, contains(paste(distribution, "FTE Variance"))))
   #Volume Calculations
-  df$`Volume Difference from Previous Distribution Period` <- 
+  df$`Volume: Difference from Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "Volume"))) - 
            select(df, contains(paste(distribution, "Volume"))))
   #Volume % Change Calculations
@@ -369,17 +371,17 @@ calculation_function <- function(df){
     apply(df$`Volume % Change From Previous Distribution Period`,
           MARGIN = 2, function(x){paste0(round(x, 2), "%")})
   #Productivity Index Calculations
-  df$`Productivity Index % Difference From Previous Distribution Period` <- 
+  df$`Productivity Index: Difference From Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
            select(df, contains(paste(distribution, "Productivity Index"))))
   #Overtime % Calculations
-  df$`Overtime % Difference From Previous Distribution Period` <- 
+  df$`Overtime %: Difference From Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "Overtime %"))) - 
            select(df, contains(paste(distribution, "Overtime %"))))
   #Labor Expense Index Calculations
-  df$`Labor Expense Index % Difference From Previous Distribution Period` <- 
-    pull(select(df, contains(paste(previous_distribution, "LE Index"))) - 
-           select(df, contains(paste(distribution, "LE Index"))))
+  df$`Labor Expense Index: Difference From Previous Distribution Period` <- 
+    pull(select(df, matches(paste(previous_distribution, "Labor Expense Index"))) - 
+           select(df, matches(paste(distribution, "Labor Expense Index"))))
   #Creating notes calculation
   df <- df %>% mutate(Notes = "")
   return(df)
