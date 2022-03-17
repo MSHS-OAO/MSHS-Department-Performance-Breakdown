@@ -1,166 +1,159 @@
-#rename columns for roll ups
-for(i in 1:length(colnames(variance_roll[[previous_distribution_i]]))){
-  colnames(variance_roll[[previous_distribution_i]])[i] <- 
-    paste0(colnames(variance_roll[[previous_distribution_i]])[i], "_1")
-  colnames(variance_roll[[distribution_i]])[i] <- 
-    paste0(colnames(variance_roll[[distribution_i]])[i], "_2")
-}
+library(purrr)
 
-#create base data frame for roll ups
-roll_up <- cbind(breakdown_change[,1:3], 
-                 variance_roll[[previous_distribution_i]],
-                 variance_roll[[distribution_i]]) %>%
-  select(-contains("Vol"),
-         -contains("Productivity Index"),
-         -contains("WHpU"),
-         -contains("Education_Orientation"),
-         -contains("FTE_Variance"),
-         -contains("PI_"),
-         -contains("OT_"),
-         -contains("LE_Index"),
-         -target_1, -target_2)
+# join definitions, previous distribution and current distribution -------
+roll <- definitions %>%
+  select(Hospital, VP, `Corporate Service Line`, Code, `Key Volume`) %>%
+  left_join(variance[[previous_distribution_i]]) %>%
+  left_join(variance[[distribution_i]]) %>%
+  select(
+    -contains("Volume"), # this removes "Key Volume". Only needed for join
+    -contains("Productivity Index"),
+    -contains("Overtime %"),
+    -contains("Labor Expense Index"),
+    -contains("WHpU"),
+    -contains("Education & Orientation %"),
+    -contains("Below Target/On Target/Above Target")
+  )
 
-#create list for both roll ups
-roll_up_list <- list(
-  vp = roll_up %>% 
+# create list made of both roll ups --------------------------------------
+roll <- list(
+  vp = roll %>%
     group_by(Hospital, VP) %>%
-    summarise(across(Target_FTE_1:Other_Worked_Hours_2,
-              ~ sum(., na.rm = T))),
-  corporate = roll_up %>% 
+    summarise(across(where(is.numeric), sum, na.rm = T)),
+  corporate = roll %>%
     group_by(Hospital, `Corporate Service Line`) %>%
-    summarise(across(Target_FTE_1:Other_Worked_Hours_2,
-                     ~ sum(., na.rm = T)))
+    summarise(across(where(is.numeric), sum, na.rm = T))
 )
 
-#-------------------------Perform necessary calculations
-#FTE Variance
-roll_up_list <- lapply(roll_up_list, transform,
-                   FTE_Var_1 = FTE_1 - Target_FTE_1)
-roll_up_list <- lapply(roll_up_list, transform,
-                       FTE_Var_2 = FTE_2 - Target_FTE_2)
-#Productivity Index
-roll_up_list <- lapply(roll_up_list, transform,
-                       PI_1 = Target_FTE_1 / FTE_1 * 100)
-roll_up_list <- lapply(roll_up_list, transform,
-                       PI_2 = Target_FTE_2 / FTE_2 * 100)
-#Overtime %
-roll_up_list <- lapply(roll_up_list, transform,
-                       OT_1 = Overtime_Hours_1 / Paid_Hours_1 * 100)
-roll_up_list <- lapply(roll_up_list, transform,
-                       OT_2 = Overtime_Hours_2 / Paid_Hours_2 * 100)
-#Labor Expense Indes
-roll_up_list <- lapply(roll_up_list, transform,
-                       LE_Index_1 = Target_LE_1 / LE_1 * 100)
-roll_up_list <- lapply(roll_up_list, transform,
-                       LE_Index_2 = Target_LE_2 / LE_2 * 100)
-#Education Orientation %
-roll_up_list <- lapply(roll_up_list, transform,
-                       ED_Orientation_1 = 
-                         (Education_Hours_1 + Orientation_Hours_1) 
-                       / Paid_Hours_1 *100)
-roll_up_list <- lapply(roll_up_list, transform,
-                       ED_Orientation_2 = 
-                         (Education_Hours_2 + Orientation_Hours_2)
-                       / Paid_Hours_2 * 100)
+dates <- c(previous_distribution, distribution)
 
-##Comparison Calculations
-#Target FTE
-roll_up_list <- lapply(roll_up_list, transform,
-                       target_diff = Target_FTE_2 - Target_FTE_1)
-#FTE
-roll_up_list <- lapply(roll_up_list, transform,
-                       fte_diff = FTE_2 - FTE_1)
-#FTE variance
-roll_up_list <- lapply(roll_up_list, transform,
-                       fte_var_diff = FTE_Var_2 - FTE_Var_1)
-#Productivity Index
-roll_up_list <- lapply(roll_up_list, transform,
-                       PI_diff = PI_2 - PI_1)
-#Overtime %
-roll_up_list <- lapply(roll_up_list, transform,
-                       OT_diff = OT_2 - OT_1)
-#LE Index %
-roll_up_list <- lapply(roll_up_list, transform,
-                       LE_diff = LE_Index_2 - LE_Index_1)
-#Notes
-roll_up_list <- lapply(roll_up_list, transform,
-                       Notes = "")
+# summing education and orientation hours together to be used for
+# a future calculation
+roll <- roll %>%
+  lapply(function(x)
+    reduce(  
+      lapply(seq_len(length(dates)), function(y) {
+        
+        x[, paste(dates[y], "Edu Orientation Hrs")] <-
+          (x[, paste(dates[y], "Education Hours")] +
+             x[, paste(dates[y], "Orientation Hours")])
+        
+        return(x)}
+      ),
+      left_join
+    )
+  )
 
-
-#VP roll_up column selection
-roll_up_list$vp <- roll_up_list$vp %>%
-  select(Hospital, VP, 
-         
-         Target_FTE_1, FTE_1, FTE_Var_1, PI_1, OT_1, LE_Index_1,
-         Worked_Hours_1, Regular_Hours_1, Overtime_Hours_1, Education_Hours_1,
-         Orientation_Hours_1, Agency_Hours_1, Other_Worked_Hours_1, 
-         ED_Orientation_1,
-         
-         Target_FTE_2, FTE_2, FTE_Var_2, PI_2, OT_2, LE_Index_2,
-         Worked_Hours_2, Regular_Hours_2, Overtime_Hours_2, Education_Hours_2,
-         Orientation_Hours_2, Agency_Hours_2, Other_Worked_Hours_2, 
-         ED_Orientation_2,
-         
-         target_diff, fte_diff, fte_var_diff, PI_diff, OT_diff, LE_diff, Notes)
-
-#Corporate roll_up column selection
-roll_up_list$corporate <- roll_up_list$corporate %>%
-  select(Hospital, Corporate.Service.Line, 
-         
-         Target_FTE_1, FTE_1, FTE_Var_1, PI_1, OT_1, LE_Index_1,
-         Worked_Hours_1, Regular_Hours_1, Overtime_Hours_1, Education_Hours_1,
-         Orientation_Hours_1, Agency_Hours_1, Other_Worked_Hours_1, 
-         ED_Orientation_1,
-         
-         Target_FTE_2, FTE_2, FTE_Var_2, PI_2, OT_2, LE_Index_2,
-         Worked_Hours_2, Regular_Hours_2, Overtime_Hours_2, Education_Hours_2,
-         Orientation_Hours_2, Agency_Hours_2, Other_Worked_Hours_2, 
-         ED_Orientation_2,
-         
-         target_diff, fte_diff, fte_var_diff, PI_diff, OT_diff, LE_diff, Notes)
-
-column_names <- c(
-  "Hospital",
-  "place_holder",
+# Percentage Calc Function -----------------------------------------------
+gen_pct <- function(x, result, numer, denom, date) {
   
-  paste(dates[previous_distribution_i,1], dataElements[1]),
-  paste(dates[previous_distribution_i,1], dataElements[2]),
-  paste(dates[previous_distribution_i,1], "FTE Variance"),
-  paste(dates[previous_distribution_i,1], "Productivity Index"),
-  paste(dates[previous_distribution_i,1], "Overtime %"),
-  paste(dates[previous_distribution_i,1], "LE Index"),
-  paste(dates[previous_distribution_i,1], dataElements[8]),
-  paste(dates[previous_distribution_i,1], dataElements[9]),
-  paste(dates[previous_distribution_i,1], dataElements[10]),
-  paste(dates[previous_distribution_i,1], dataElements[11]),
-  paste(dates[previous_distribution_i,1], dataElements[12]),
-  paste(dates[previous_distribution_i,1], dataElements[13]),
-  paste(dates[previous_distribution_i,1], dataElements[14]),
-  paste(dates[previous_distribution_i,1], dataElements[15]),
+  # This function creates a column that is a percentage calculation
+  # and appends it to the existing dataframe
   
-  paste(dates[distribution_i,1], dataElements[1]),
-  paste(dates[distribution_i,1], dataElements[2]),
-  paste(dates[distribution_i,1], "FTE Variance"),
-  paste(dates[distribution_i,1], "Productivity Index"),
-  paste(dates[distribution_i,1], "Overtime %"),
-  paste(dates[distribution_i,1], "LE Index"),
-  paste(dates[distribution_i,1], dataElements[8]),
-  paste(dates[distribution_i,1], dataElements[9]),
-  paste(dates[distribution_i,1], dataElements[10]),
-  paste(dates[distribution_i,1], dataElements[11]),
-  paste(dates[distribution_i,1], dataElements[12]),
-  paste(dates[distribution_i,1], dataElements[13]),
-  paste(dates[distribution_i,1], dataElements[14]),
-  paste(dates[distribution_i,1], dataElements[15]),
-  "Target FTE Difference from Previous Distribution Period",
-  "FTE Difference from Previous Distribution Period",
-  "FTE Variance Difference from Previous Distribution Period",
-  "Productivity Index % Difference From Previous Distribution Period",
-  "Overtime % Difference From Previous Distribution Period",
-  "Labor Expense Index % Difference From Previous Distribution Period",
-  "Notes")
+  x[, paste(date, result)] <-
+    (100 * (x[, paste(date, numer)] /
+             x[, paste(date, denom)]))
+  
+  return(x)
+}
 
-#apply column names to both data framse
-roll_up_list <- lapply(roll_up_list, setNames, column_names)
-colnames(roll_up_list$vp)[2] <- "VP"
-colnames(roll_up_list$corporate)[2] <- "Corporate Service Line"
+# Percentage Calculation Nested Apply-------------------------------------------
+
+# entries for the gen_pct() to be used within the apply() function
+roll_calc_inputs <- cbind(
+  Prod_index = c("Productivity Index", "Target FTE", "FTE"),
+  LE_Index = c("Labor Expense Index", "Target Labor Expense", "Labor Expense"),
+  OT_pct = c("Overtime %", "Overtime Hours", "Paid Hours"),
+  EDU_Ort_pct = c("Education & Orientation %", "Edu Orientation Hrs", "Paid Hours")
+)
+
+roll <-
+  lapply(roll, function(x)
+    reduce(
+      lapply(seq_len(ncol(roll_calc_inputs)), function(y) 
+        reduce(
+          lapply(seq_len(length(dates)), function(z)
+            gen_pct(x,
+                     result = roll_calc_inputs[1, y],
+                     numer = roll_calc_inputs[2, y],
+                     denom = roll_calc_inputs[3, y],
+                     date = dates[z]
+            )
+          ),
+          left_join
+        )
+      ),
+      left_join
+    )
+  )
+
+# Difference Calc Functions -----------------------------------------------
+gen_diff <- function(x, metric, pre, post) {
+  # This function creates columns that are difference calculations
+
+  x[[paste0(metric, ": Difference from Previous Distribution Period")]] <-
+    (x[[paste(post, metric)]] - x[[paste(pre, metric)]])
+
+  return(x)
+}
+
+# Difference Calculation --------------------------------------------------
+
+# entries for the gen_pct() to be used within the apply() function
+roll_diff_inputs <- cbind(
+  c("Target FTE", previous_distribution, distribution),
+  c("FTE", previous_distribution, distribution),
+  c("FTE Variance", previous_distribution, distribution),
+  c("Productivity Index", previous_distribution, distribution),
+  c("Overtime %", previous_distribution, distribution),
+  c("Labor Expense Index", previous_distribution, distribution)
+)
+
+roll <- lapply(roll, function(x)
+  reduce(
+    lapply(seq_len(ncol(roll_diff_inputs)), function(y) 
+      gen_diff(x,
+               metric = roll_diff_inputs[1, y],
+               pre = roll_diff_inputs[2, y],
+               post = roll_diff_inputs[3, y]
+      )
+    ),
+    left_join
+  )
+)
+
+# Finalizing Column Order -------------------------------------------------
+roll <- roll %>% lapply(function(x) {
+  col_field_order <- c(
+    "Target FTE", "FTE", "FTE Variance", "Productivity Index", "Overtime %",
+    "Labor Expense Index", "Total Worked Hours", "Regular Hours", "Overtime Hours",
+    "Education Hours", "Orientation Hours", "Agency Hours",
+    "Other Worked Hours", "Education & Orientation %"
+  )
+
+  diff_text_fields <- c(
+    "Target FTE", "FTE", "FTE Variance",
+    "Productivity Index", "Overtime %", "Labor Expense Index"
+  )
+
+  diff_text <- ": Difference from Previous Distribution Period"
+
+  col_order <- c(
+    # the column index is dependent on the column order in the group_by()
+    # and summarise() functions at the top of this script
+    "Hospital", colnames(x)[2],
+    paste(previous_distribution, col_field_order),
+    paste(distribution, col_field_order),
+    paste0(diff_text_fields, diff_text)
+
+  )
+
+  # sequencing the columns in the desired order.
+  # This also removes unneeded columns.
+  x <- x[, col_order]
+  
+  x <- x %>% mutate(Notes = "")
+})
+
+
+# Do column titles need to be adjusted slightly?
