@@ -9,7 +9,7 @@ roll <- definitions %>%
     -contains("Volume"), # this removes "Key Volume". Only needed for join
     -contains("Productivity Index"),
     -contains("Overtime %"),
-    -contains("LE Index"),
+    -contains("Labor Expense Index"),
     -contains("WHpU"),
     -contains("Education & Orientation %"),
     -contains("Below Target/On Target/Above Target")
@@ -51,7 +51,7 @@ gen_pct <- function(x, result, numer, denom, date) {
   # and appends it to the existing dataframe
   
   x[, paste(date, result)] <-
-    (100* (x[, paste(date, numer)] /
+    (100 * (x[, paste(date, numer)] /
              x[, paste(date, denom)]))
   
   return(x)
@@ -61,10 +61,10 @@ gen_pct <- function(x, result, numer, denom, date) {
 
 # entries for the gen_pct() to be used within the apply() function
 roll_calc_inputs <- cbind(
-  c("Productivity Index", "Target FTE", "FTE"),
-  c("LE Index", "Target Labor Expense", "Labor Expense"),
-  c("Overtime %", "Overtime Hours", "Paid Hours"),
-  c("Education & Orientation %", "Edu Orientation Hrs", "Paid Hours")
+  Prod_index = c("Productivity Index", "Target FTE", "FTE"),
+  LE_Index = c("Labor Expense Index", "Target Labor Expense", "Labor Expense"),
+  OT_pct = c("Overtime %", "Overtime Hours", "Paid Hours"),
+  EDU_Ort_pct = c("Education & Orientation %", "Edu Orientation Hrs", "Paid Hours")
 )
 
 roll <-
@@ -91,21 +91,11 @@ roll <-
 gen_diff <- function(x, metric, pre, post) {
   # This function creates columns that are difference calculations
 
-  x[[paste(metric, "Difference from Previous Distribution Period")]] <-
+  x[[paste0(metric, ": Difference from Previous Distribution Period")]] <-
     (x[[paste(post, metric)]] - x[[paste(pre, metric)]])
 
   return(x)
 }
-
-# gen_diff_pct <- function(x, metric, pre, post) {
-#   # This function creates columns that are percent change calculations
-#
-#   x[[paste(metric, "% Change from Previous Distribution Period")]] <-
-#     (100 * (x[[paste(post, metric)]] - x[[paste(pre, metric)]]) /
-#       x[[paste(pre, metric)]])
-#
-#   return(x[[paste(metric, "% Change from Previous Distribution Period")]])
-# }
 
 # Difference Calculation --------------------------------------------------
 
@@ -116,7 +106,7 @@ roll_diff_inputs <- cbind(
   c("FTE Variance", previous_distribution, distribution),
   c("Productivity Index", previous_distribution, distribution),
   c("Overtime %", previous_distribution, distribution),
-  c("LE Index", previous_distribution, distribution)
+  c("Labor Expense Index", previous_distribution, distribution)
 )
 
 roll <- lapply(roll, function(x)
@@ -136,17 +126,17 @@ roll <- lapply(roll, function(x)
 roll <- roll %>% lapply(function(x) {
   col_field_order <- c(
     "Target FTE", "FTE", "FTE Variance", "Productivity Index", "Overtime %",
-    "LE Index", "Total Worked Hours", "Regular Hours", "Overtime Hours",
+    "Labor Expense Index", "Total Worked Hours", "Regular Hours", "Overtime Hours",
     "Education Hours", "Orientation Hours", "Agency Hours",
     "Other Worked Hours", "Education & Orientation %"
   )
 
   diff_text_fields <- c(
     "Target FTE", "FTE", "FTE Variance",
-    "Productivity Index", "Overtime %", "LE Index"
+    "Productivity Index", "Overtime %", "Labor Expense Index"
   )
 
-  diff_text <- "Difference from Previous Distribution Period"
+  diff_text <- ": Difference from Previous Distribution Period"
 
   col_order <- c(
     # the column index is dependent on the column order in the group_by()
@@ -154,12 +144,8 @@ roll <- roll %>% lapply(function(x) {
     "Hospital", colnames(x)[2],
     paste(previous_distribution, col_field_order),
     paste(distribution, col_field_order),
-    paste(diff_text_fields, diff_text)
+    paste0(diff_text_fields, diff_text)
 
-    # if we want to add % Change for some metrics we need to make adjustments.
-    # Examples:
-    # "Target FTE % Change from Previous Distribution Period"
-    # "FTE % Change from Previous Distribution Period"
   )
 
   # sequencing the columns in the desired order.
@@ -169,7 +155,5 @@ roll <- roll %>% lapply(function(x) {
   x <- x %>% mutate(Notes = "")
 })
 
-# % columns need to be formatted.  Does this include rounding?
-# is this completed in the Formatting.R script?
 
 # Do column titles need to be adjusted slightly?
