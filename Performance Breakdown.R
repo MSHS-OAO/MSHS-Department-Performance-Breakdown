@@ -389,6 +389,7 @@ calculation_function <- function(df){
   df <- df %>% mutate(Notes = "")
   ############################################
   #remove non comparison calculation columns before df is returned
+  #remove rounding and formatting of percentages within calculation_function()
   ############################################
   return(df)
 }
