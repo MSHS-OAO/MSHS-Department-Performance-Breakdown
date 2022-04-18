@@ -353,7 +353,7 @@ calculation_function <- function(df){
            select(df, ends_with(paste(distribution, "FTE"))))
   #FTE % Change Calculations
   df$`FTE % Change From Previous Distribution Period` <- 
-   ((select(df, ends_with(paste(previous_distribution, "FTE"))) /
+   (pull(select(df, ends_with(paste(previous_distribution, "FTE"))) /
        select(df, ends_with(paste(distribution, "FTE")))) - 1) * 100
   #FTE Variance Calculations
   df$`FTE Variance: Difference from Previous Distribution Period` <- 
@@ -365,7 +365,7 @@ calculation_function <- function(df){
            select(df, contains(paste(distribution, "Volume"))))
   #Volume % Change Calculations
   df$`Volume % Change From Previous Distribution Period` <- 
-    ((select(df, ends_with(paste(previous_distribution, "Volume"))) /
+    (pull(select(df, ends_with(paste(previous_distribution, "Volume"))) /
         select(df, ends_with(paste(distribution, "Volume")))) - 1) * 100
   #Productivity Index Calculations
   df$`Productivity Index: Difference From Previous Distribution Period` <- 
