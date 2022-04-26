@@ -398,20 +398,6 @@ comparison_calculations <- calculation_function(
                contains("Previous"),
                Notes)
 
-#Percent Formatting Function---------------------------------------------------
-# percent_formatting <- function(df, col_names){
-#   paste0(round(df$col_names, 2), "%")
-# }
-
-#test1 <- percent_formatting(comparison_calculations, `FTE % Change From Previous Distribution Period`)
-
-percent_formatting <- function(df, col_name){
-  df <- df %>%
-    mutate_at(vars(contains(col_name)), ~ round(.x, digits = 2)) %>%
-    mutate_at(vars(contains(col_name)), ~ paste0(.x, "%"))
-}
-test1 <- percent_formatting(comparison_calculations,"%")
-
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
 
