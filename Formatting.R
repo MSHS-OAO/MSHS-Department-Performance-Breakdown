@@ -12,6 +12,6 @@ percent_formatting <- function(df, col_name, matches = F){
   }
 }
 
-test_df <- percent_formatting(comparison_calculations, c("%", "Index"), matches = F)
+test_df <- percent_formatting(comparison_calculations, c("%", "Index"))
 
 test_list <- lapply(roll, function(x) percent_formatting(x, c("%", "Index")))
