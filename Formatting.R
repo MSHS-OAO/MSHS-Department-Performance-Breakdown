@@ -12,6 +12,14 @@ percent_formatting <- function(df, col_name, matches = F){
   }
 }
 
-test_df <- percent_formatting(comparison_calculations, c("%", "Index"))
+# format percentages in roll list elements
+roll_format <- lapply(roll, 
+                      function(x) percent_formatting(x, c("%", "Index")))
 
-test_list <- lapply(roll, function(x) percent_formatting(x, c("%", "Index")))
+# format percentages in all variance list elements to prepare appendix
+variance_format <- lapply(variance, 
+                          function(x) percent_formatting(x, c("%", "Index")))
+
+# format percentages in the comparison calculations df
+comparison_calculations_format <- percent_formatting(comparison_calculations, 
+                                                     c("%", "Index"))
