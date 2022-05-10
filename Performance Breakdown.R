@@ -353,11 +353,8 @@ calculation_function <- function(df){
            select(df, ends_with(paste(distribution, "FTE"))))
   #FTE % Change Calculations
   df$`FTE % Change From Previous Distribution Period` <- 
-   ((select(df, ends_with(paste(previous_distribution, "FTE"))) /
+   (pull(select(df, ends_with(paste(previous_distribution, "FTE"))) /
        select(df, ends_with(paste(distribution, "FTE")))) - 1) * 100
-  df$`FTE % Change From Previous Distribution Period` <- 
-    apply(df$`FTE % Change From Previous Distribution Period`,
-          MARGIN = 2, function(x){paste0(round(x, 2), "%")})
   #FTE Variance Calculations
   df$`FTE Variance: Difference from Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
@@ -368,11 +365,8 @@ calculation_function <- function(df){
            select(df, contains(paste(distribution, "Volume"))))
   #Volume % Change Calculations
   df$`Volume % Change From Previous Distribution Period` <- 
-    ((select(df, ends_with(paste(previous_distribution, "Volume"))) /
+    (pull(select(df, ends_with(paste(previous_distribution, "Volume"))) /
         select(df, ends_with(paste(distribution, "Volume")))) - 1) * 100
-  df$`Volume % Change From Previous Distribution Period` <- 
-    apply(df$`Volume % Change From Previous Distribution Period`,
-          MARGIN = 2, function(x){paste0(round(x, 2), "%")})
   #Productivity Index Calculations
   df$`Productivity Index: Difference From Previous Distribution Period` <- 
     pull(select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
@@ -387,15 +381,19 @@ calculation_function <- function(df){
            select(df, matches(paste(distribution, "Labor Expense Index"))))
   #Creating notes calculation
   df <- df %>% mutate(Notes = "")
-  ############################################
-  #remove non comparison calculation columns before df is returned
-  #remove rounding and formatting of percentages within calculation_function()
-  ############################################
+  
   return(df)
 }
 #Applying calculations
-comparison_calculations <- calculation_function(left_join(variance[[previous_distribution_i]],
-                                                            variance[[distribution_i]]))
+comparison_calculations <- calculation_function(
+  left_join(
+    variance[[previous_distribution_i]],
+    variance[[distribution_i]]
+    )
+  ) %>% select(Code, 
+               `Key Volume`,
+               contains("Previous"),
+               Notes)
 
 #VP Roll-Up--------------------------------------------------------------------
 source(paste0(here(),"/Roll_Up.R"))
