@@ -381,10 +381,7 @@ calculation_function <- function(df){
            select(df, matches(paste(distribution, "Labor Expense Index"))))
   #Creating notes calculation
   df <- df %>% mutate(Notes = "")
-  ############################################
-  #remove non comparison calculation columns before df is returned
-  #remove rounding and formatting of percentages within calculation_function()
-  ############################################
+  
   return(df)
 }
 #Applying calculations
