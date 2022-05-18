@@ -100,7 +100,8 @@ colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
 laborStandards <- laborStandards %>%
   select(Partner, Hospital, Code, EffDate, VolID, DepID, `Standard Type`,
          `Target WHpU`, LEpU, WHpU2, LEpU2, PHpU, MinStaff, FixStaff, KeyVol) %>%
-  filter(KeyVol == "Y") 
+  filter(KeyVol == "Y") %>%
+  mutate(EffDate = as.Date(EffDate, format = "%m%d%Y"))
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
@@ -400,6 +401,30 @@ source(paste0(here(),"/Roll_Up.R"))
 
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
+
+
+# Creating Deliverables ---------------------------------------------------
+# Create all 4 dataframes to be saved. 
+# (Main department breakdown, Appendix department breakdown, VP roll up, Corporate
+#   Service line roll up)
+
+dept_breakdown_final <- reduce(list(
+  definitions,
+  laborStandards %>%
+    left_join(select(definitions, c("Code", "Key Volume"))) %>%
+    select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
+    rename(`Effective Date` = EffDate),
+  variance[[previous_distribution_i]],
+  variance[[distribution_i]],
+  comparison_calculations
+), left_join)
+# do we want to remove "Target FTEs"?
+# %>% select(-ends_with("Target FTE"))
+
+
+vp_roll_up <- roll
+corporate_roll_up <- roll
+appendix <- variance
 
 #removing unwanted columns
 breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
