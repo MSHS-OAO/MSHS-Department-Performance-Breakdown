@@ -401,6 +401,27 @@ source(paste0(here(),"/Roll_Up.R"))
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
 
+#format date for save file
+Date <- gsub("/","-",distribution)
+
+#Error Report creation
+NA_raw <- data.frame(variance[c(distribution_i,previous_distribution_i)])
+
+Other_NAs <- subset(NA_raw, Code != "MSM_42" & Code != "MSM_RAD102")
+Other_NAs <- Other_NAs[rowSums(is.na(Other_NAs)) > 0,]
+
+MSMW_NA <- filter(NA_raw, Code == "MSM_42" | Code == "MSM_RAD102") 
+MSMW_NA <- MSMW_NA[is.na(MSMW_NA$X02.26.2022.FTE),]
+
+NA_Error_Report <- rbind(Other_NAs, MSMW_NA)
+
+write.table(NA_Error_Report,
+            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+                   "Productivity/Analysis/MSHS Department Breakdown/",
+                   "Error Reports/NA reports/", 
+                   "NA report", Date, ".csv"),
+            row.names = F, sep = ",")
+
 #removing unwanted columns
 breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
                                            pattern = "Target FTE")]
@@ -422,9 +443,6 @@ if("MSHS" %in% output_site){
   output_corpservice_roll <- roll_up_list$corporate %>%
     filter(Hospital %in% output_site)
 }
-
-#format date for save file
-Date <- gsub("/","-",distribution)
 
 # work_book <- createWorkbook()
 #
