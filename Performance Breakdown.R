@@ -38,6 +38,16 @@ dist_dates <- dates %>%
   filter(PREMIER.DISTRIBUTION %in% c(TRUE, 1),
          #filter 3 weeks from run date (21 days) for data collection lag before run date
          END.DATE < as.POSIXct(Sys.Date() - 21))
+#Table of non-distribution dates
+non_dist_dates <- dates %>%
+  select(END.DATE, PREMIER.DISTRIBUTION) %>%
+  distinct() %>%
+  drop_na() %>%
+  arrange(END.DATE) %>%
+  #filter only on distribution end dates
+  filter(PREMIER.DISTRIBUTION %in% c(FALSE, 0),
+         #filter 3 weeks from run date (21 days) for data collection lag before run date
+         END.DATE < as.POSIXct(Sys.Date() - 21))
 #Selecting current and previous distribution dates
 distribution <- format(dist_dates$END.DATE[nrow(dist_dates)],"%m/%d/%Y")
 previous_distribution <- format(dist_dates$END.DATE[nrow(dist_dates)-1],"%m/%d/%Y")
@@ -421,16 +431,29 @@ dept_breakdown_final <- reduce(list(
 # do we want to remove "Target FTEs"?
 # %>% select(-ends_with("Target FTE"))
 
+#if not removing columns don't need new variables for roll ups
+# vp_roll_up <- roll$vp
+# 
+# corporate_roll_up <- roll$corporate
 
-vp_roll_up <- roll
-corporate_roll_up <- roll
-appendix <- variance
+appendix <- reduce(
+  list(
+    definitions,
+    laborStandards %>%
+      left_join(select(definitions, c("Code", "Key Volume"))) %>%
+      select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
+      rename(`Effective Date` = EffDate),
+    reduce(variance, left_join)
+  ), left_join) %>%
+  select(-starts_with(format(non_dist_dates$END.DATE, "%m/%d/%Y")))
 
-#removing unwanted columns
-breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
-                                           pattern = "Target FTE")]
-breakdown_performance_appendix <- breakdown_performance_appendix[, -grep(colnames(breakdown_change),
-                                                                        pattern = "Target FTE")]
+
+  
+# #removing unwanted columns
+# breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
+#                                            pattern = "Target FTE")]
+# breakdown_performance_appendix <- breakdown_performance_appendix[, -grep(colnames(breakdown_change),
+#                                                                         pattern = "Target FTE")]
 #logic for determining what site(s) to output
 if("MSHS" %in% output_site){
   output_index <- breakdown_text
