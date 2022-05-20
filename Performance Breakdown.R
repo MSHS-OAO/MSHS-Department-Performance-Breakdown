@@ -418,7 +418,7 @@ source(paste0(here(),"/Formatting.R"))
 # (Main department breakdown, Appendix department breakdown, VP roll up, Corporate
 #   Service line roll up)
 
-dept_breakdown_final <- reduce(list(
+dept_breakdown <- reduce(list(
   definitions,
   laborStandards %>%
     left_join(select(definitions, c("Code", "Key Volume"))) %>%
@@ -447,29 +447,19 @@ appendix <- reduce(
   ), left_join) %>%
   select(-starts_with(format(non_dist_dates$END.DATE, "%m/%d/%Y")))
 
-
-  
-# #removing unwanted columns
-# breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
-#                                            pattern = "Target FTE")]
-# breakdown_performance_appendix <- breakdown_performance_appendix[, -grep(colnames(breakdown_change),
-#                                                                         pattern = "Target FTE")]
-#logic for determining what site(s) to output
-if("MSHS" %in% output_site){
-  output_index <- breakdown_text
-  output_appendix <- breakdown_performance_appendix
-  output_VP_roll <- roll_up_list$vp
-  output_corpservice_roll <- roll_up_list$corporate
-} else {
-  output_index <- breakdown_text %>%
+# Selecting Site Output(s) ------------------------------------------------
+if(!"MSHS" %in% output_site){
+  dept_breakdown <- dept_breakdown %>%
     filter(Hospital %in% output_site)
-  output_VP_roll <- roll_up_list$vp %>%
+  roll$vp <- roll$vp %>%
     filter(Hospital %in% output_site)
-  output_appendix <- breakdown_performance_appendix %>%
+  roll$corporate <- roll$corporate %>%
     filter(Hospital %in% output_site)
-  output_corpservice_roll <- roll_up_list$corporate %>%
+  appendix <- appendix %>%
     filter(Hospital %in% output_site)
 }
+
+# Exporting Deliverable --------------------------------------------------
 
 #format date for save file
 Date <- gsub("/","-",distribution)
