@@ -460,62 +460,39 @@ if(!"MSHS" %in% output_site){
 }
 
 # Exporting Deliverable --------------------------------------------------
+distribution_date <- gsub("/","-", distribution)
 
-#format date for save file
-Date <- gsub("/","-",distribution)
-
-# work_book <- createWorkbook()
-#
-# addWorksheet(work_book, sheetName = "Department Breakdown")
-# addWorksheet(work_book, sheetName = "Reports Removed")
-# addWorksheet(work_book, sheetName = "Department Breakdown Guidelines")
-# addWorksheet(work_book, sheetName = "VP Roll Up")
-# addWorksheet(work_book, sheetName = "Corporate Service Roll Up")
-# addWorksheet(work_book, sheetName = "Appendix")
-#
-# writeData(work_book, "Department Breakdown", output_index)
-# writeData(work_book, "VP Roll Up", output_VP_roll)
-# writeData(work_book, "Corporate Service Roll Up", output_corpservice_roll)
-# writeData(work_book, "Appendix", output_appendix)
-#
-# file_name <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-#        "Productivity/Analysis/MSHS Department Breakdown/",
-#        "Department Breakdown/xlsx/",
-#        paste(output_site, collapse = " & "),
-#        "_Department Performance Breakdown_", Date, ".xlsx")
-# saveWorkbook(work_book, file = file_name, overwrite = FALSE)
-
-write.table(output_index,
+write.table(dept_breakdown,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Breakdown/",
                    paste(output_site, collapse = " & "),
-                   "_Department Performance Breakdown_", Date, ".csv"),
+                   "_Department Performance Breakdown_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save appendix
-write.table(output_appendix,
+write.table(appendix,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Appendix/",
                    paste(output_site, collapse = " & "),
-                   "_Breakdown Appendix_", Date, ".csv"),
+                   "_Breakdown Appendix_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save VP rollup
-write.table(output_VP_roll,
+write.table(roll$vp,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/VP Rollup/",
                    paste(output_site, collapse = " & "),
-                   "_VP Rollup_", Date, ".csv"),
+                   "_VP Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save Corporate rollup
-write.table(output_corpservice_roll,
+write.table(roll$corporate,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Corporate Rollup/",
                    paste(output_site, collapse = " & "),
-                   "_Corporate Rollup_", Date, ".csv"),
+                   "_Corporate Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
