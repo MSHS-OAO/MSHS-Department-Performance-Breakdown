@@ -5,6 +5,7 @@ library(rlist)
 library(stringr)
 library(here)
 library(openxlsx)
+library(lubridate)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
@@ -404,23 +405,26 @@ source(paste0(here(),"/Formatting.R"))
 #format date for save file
 Date <- gsub("/","-",distribution)
 
-#Error Report creation
-NA_raw <- data.frame(variance[c(distribution_i,previous_distribution_i)])
+#list of msmw cpt departments
+###check with Anjelica that this list is correct
+msmw_cpt <- c("MSW_15", "MSM_42", "MSM_41")
 
-Other_NAs <- subset(NA_raw, Code != "MSM_42" & Code != "MSM_RAD102")
-Other_NAs <- Other_NAs[rowSums(is.na(Other_NAs)) > 0,]
+# joining and filtering variance elements to identify NA reports 
+na_reports <- variance[[previous_distribution_i]] %>% 
+  anti_join(
+    variance[[previous_distribution_i]] %>%
+      filter(Code %in% msmw_cpt) %>%
+      filter_all(all_vars(!is.na(.)))) %>%
+  left_join(variance[[distribution_i]]) %>%
+  filter_all(any_vars(is.na(.)))
 
-MSMW_NA <- filter(NA_raw, Code == "MSM_42" | Code == "MSM_RAD102") 
-MSMW_NA <- MSMW_NA[is.na(MSMW_NA$X02.26.2022.FTE),]
+### extra departments report
 
-NA_Error_Report <- rbind(Other_NAs, MSMW_NA)
+# save NA report
+write.xlsx(na_reports, paste0(dir_breakdown, "Error Reports/NA Reports/",
+                              "NA_Reports_", Date, ".xlsx"))
 
-write.table(NA_Error_Report,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-                   "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Error Reports/NA reports/", 
-                   "NA report", Date, ".csv"),
-            row.names = F, sep = ",")
+### save extra departments
 
 #removing unwanted columns
 breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
