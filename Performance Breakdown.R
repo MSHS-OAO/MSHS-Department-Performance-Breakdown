@@ -419,12 +419,16 @@ na_reports <- variance[[previous_distribution_i]] %>%
   filter_all(any_vars(is.na(.)))
 
 ### extra departments report
+extra_dep_report <- as.data.frame(setdiff(unique(reportBuilder$department_performance$Department.Reporting.Definition.ID), 
+                            unique(breakdown_performance$Code)))
 
 # save NA report
 write.xlsx(na_reports, paste0(dir_breakdown, "Error Reports/NA Reports/",
                               "NA_Reports_", Date, ".xlsx"))
 
 ### save extra departments
+write.xlsx(extra_dep_report, paste0(dir_breakdown, "Error Reports/Extra Departments/",
+                              "Extra_Departments_Report_", Date, ".xlsx"), colNames = F)
 
 #removing unwanted columns
 breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
