@@ -5,6 +5,7 @@ library(rlist)
 library(stringr)
 library(here)
 library(openxlsx)
+library(lubridate)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
@@ -413,8 +414,45 @@ source(paste0(here(),"/Roll_Up.R"))
 source(paste0(here(),"/Formatting.R"))
 
 
+# format date for save file
+Date <- gsub("/","-",distribution)
+
+# list of msmw cpt departments
+msmw_cpt <- c("MSW_15", "MSM_42", "MSM_41")
+
+# joining and filtering variance elements to identify NA reports
+na_report <- variance[[previous_distribution_i]] %>% 
+  anti_join(
+    variance[[previous_distribution_i]] %>%
+      filter(Code %in% msmw_cpt) %>%
+      filter_all(all_vars(!is.na(.)))) %>%
+  left_join(variance[[distribution_i]]) %>%
+  filter_all(any_vars(is.na(.)))
+
+# extra departments report
+extra_dep_report <- anti_join(
+  select(reportBuilder$department_performance,
+         Department.Reporting.Definition.ID, 
+         Department.Reporting.Definition.Name), 
+  select(breakdown_performance, 
+         Code, 
+         Name), 
+  by = c("Department.Reporting.Definition.ID" = "Code"))
+
+# save NA report
+write.xlsx(na_report, 
+           paste0(dir_breakdown, "Error Reports/NA Reports/", "NA_Reports_", 
+                  Date, ".xlsx"),
+           overwrite = T)
+
+# save extra departments
+write.xlsx(extra_dep_report, 
+           paste0(dir_breakdown, "Error Reports/Extra Departments/",
+                  "Extra_Departments_Report_", Date, ".xlsx"),
+           overwrite = T)
+
 # Creating Deliverables ---------------------------------------------------
-# Create all 4 dataframes to be saved. 
+# Create final dataframes to be saved. 
 # (Main department breakdown, Appendix department breakdown, VP roll up, Corporate
 #   Service line roll up)
 
@@ -453,9 +491,7 @@ if(!"MSHS" %in% output_site){
     filter(Hospital %in% output_site)
 }
 
-# Exporting Deliverable --------------------------------------------------
-distribution_date <- gsub("/","-", distribution)
-
+#save main deliverable                      
 write.table(dept_breakdown,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
