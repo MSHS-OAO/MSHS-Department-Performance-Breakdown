@@ -415,7 +415,7 @@ source(paste0(here(),"/Formatting.R"))
 
 
 # format date for save file
-Date <- gsub("/","-",distribution)
+distribution_date <- gsub("/","-",distribution)
 
 # list of msmw cpt departments
 msmw_cpt <- c("MSW_15", "MSM_42", "MSM_41")
@@ -442,13 +442,13 @@ extra_dep_report <- anti_join(
 # save NA report
 write.xlsx(na_report, 
            paste0(dir_breakdown, "Error Reports/NA Reports/", "NA_Reports_", 
-                  Date, ".xlsx"),
+                  distribution_date, ".xlsx"),
            overwrite = T)
 
 # save extra departments
 write.xlsx(extra_dep_report, 
            paste0(dir_breakdown, "Error Reports/Extra Departments/",
-                  "Extra_Departments_Report_", Date, ".xlsx"),
+                  "Extra_Departments_Report_", distribution_date, ".xlsx"),
            overwrite = T)
 
 # Creating Deliverables ---------------------------------------------------
@@ -495,7 +495,7 @@ if(!"MSHS" %in% output_site){
 write.table(dept_breakdown,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Breakdown/",
+                   "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
                    "_Department Performance Breakdown_", distribution_date, ".csv"),
             row.names = F, sep = ",")
@@ -504,7 +504,7 @@ write.table(dept_breakdown,
 write.table(appendix,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Appendix/",
+                   "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
                    "_Breakdown Appendix_", distribution_date, ".csv"),
             row.names = F, sep = ",")
@@ -513,7 +513,7 @@ write.table(appendix,
 write.table(roll$vp,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/VP Rollup/",
+                   "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
                    "_VP Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
@@ -522,7 +522,7 @@ write.table(roll$vp,
 write.table(roll$corporate,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Corporate Rollup/",
+                   "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
                    "_Corporate Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
