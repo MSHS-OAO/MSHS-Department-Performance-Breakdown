@@ -5,6 +5,7 @@ library(rlist)
 library(stringr)
 library(here)
 library(openxlsx)
+library(lubridate)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
@@ -36,6 +37,16 @@ dist_dates <- dates %>%
   arrange(END.DATE) %>%
   #filter only on distribution end dates
   filter(PREMIER.DISTRIBUTION %in% c(TRUE, 1),
+         #filter 3 weeks from run date (21 days) for data collection lag before run date
+         END.DATE < as.POSIXct(Sys.Date() - 21))
+#Table of non-distribution dates
+non_dist_dates <- dates %>%
+  select(END.DATE, PREMIER.DISTRIBUTION) %>%
+  distinct() %>%
+  drop_na() %>%
+  arrange(END.DATE) %>%
+  #filter only on distribution end dates
+  filter(PREMIER.DISTRIBUTION %in% c(FALSE, 0),
          #filter 3 weeks from run date (21 days) for data collection lag before run date
          END.DATE < as.POSIXct(Sys.Date() - 21))
 #Selecting current and previous distribution dates
@@ -100,7 +111,8 @@ colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
 laborStandards <- laborStandards %>%
   select(Partner, Hospital, Code, EffDate, VolID, DepID, `Standard Type`,
          `Target WHpU`, LEpU, WHpU2, LEpU2, PHpU, MinStaff, FixStaff, KeyVol) %>%
-  filter(KeyVol == "Y") 
+  filter(KeyVol == "Y") %>%
+  mutate(EffDate = as.Date(EffDate, format = "%m%d%Y"))
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
@@ -401,83 +413,116 @@ source(paste0(here(),"/Roll_Up.R"))
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
 
-#removing unwanted columns
-breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
-                                           pattern = "Target FTE")]
-breakdown_performance_appendix <- breakdown_performance_appendix[, -grep(colnames(breakdown_change),
-                                                                        pattern = "Target FTE")]
-#logic for determining what site(s) to output
-if("MSHS" %in% output_site){
-  output_index <- breakdown_text
-  output_appendix <- breakdown_performance_appendix
-  output_VP_roll <- roll_up_list$vp
-  output_corpservice_roll <- roll_up_list$corporate
-} else {
-  output_index <- breakdown_text %>%
+
+# format date for save file
+Date <- gsub("/","-",distribution)
+
+# list of msmw cpt departments
+msmw_cpt <- c("MSW_15", "MSM_42", "MSM_41")
+
+# joining and filtering variance elements to identify NA reports
+na_report <- variance[[previous_distribution_i]] %>% 
+  anti_join(
+    variance[[previous_distribution_i]] %>%
+      filter(Code %in% msmw_cpt) %>%
+      filter_all(all_vars(!is.na(.)))) %>%
+  left_join(variance[[distribution_i]]) %>%
+  filter_all(any_vars(is.na(.)))
+
+# extra departments report
+extra_dep_report <- anti_join(
+  select(reportBuilder$department_performance,
+         Department.Reporting.Definition.ID, 
+         Department.Reporting.Definition.Name), 
+  select(breakdown_performance, 
+         Code, 
+         Name), 
+  by = c("Department.Reporting.Definition.ID" = "Code"))
+
+# save NA report
+write.xlsx(na_report, 
+           paste0(dir_breakdown, "Error Reports/NA Reports/", "NA_Reports_", 
+                  Date, ".xlsx"),
+           overwrite = T)
+
+# save extra departments
+write.xlsx(extra_dep_report, 
+           paste0(dir_breakdown, "Error Reports/Extra Departments/",
+                  "Extra_Departments_Report_", Date, ".xlsx"),
+           overwrite = T)
+
+# Creating Deliverables ---------------------------------------------------
+# Create final dataframes to be saved. 
+# (Main department breakdown, Appendix department breakdown, VP roll up, Corporate
+#   Service line roll up)
+
+dept_breakdown <- reduce(list(
+  definitions,
+  laborStandards %>%
+    left_join(select(definitions, c("Code", "Key Volume"))) %>%
+    select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
+    rename(`Effective Date` = EffDate),
+  variance[[previous_distribution_i]],
+  variance[[distribution_i]],
+  comparison_calculations
+), left_join) %>% 
+  select(-ends_with("Target FTE"))
+
+appendix <- reduce(
+  list(
+    definitions,
+    laborStandards %>%
+      left_join(select(definitions, c("Code", "Key Volume"))) %>%
+      select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
+      rename(`Effective Date` = EffDate),
+    reduce(variance, left_join)
+  ), left_join) %>%
+  select(-starts_with(format(non_dist_dates$END.DATE, "%m/%d/%Y")))
+
+# Selecting Site Output(s) ------------------------------------------------
+if(!"MSHS" %in% output_site){
+  dept_breakdown <- dept_breakdown %>%
     filter(Hospital %in% output_site)
-  output_VP_roll <- roll_up_list$vp %>%
+  roll$vp <- roll$vp %>%
     filter(Hospital %in% output_site)
-  output_appendix <- breakdown_performance_appendix %>%
+  roll$corporate <- roll$corporate %>%
     filter(Hospital %in% output_site)
-  output_corpservice_roll <- roll_up_list$corporate %>%
+  appendix <- appendix %>%
     filter(Hospital %in% output_site)
 }
 
-#format date for save file
-Date <- gsub("/","-",distribution)
-
-# work_book <- createWorkbook()
-#
-# addWorksheet(work_book, sheetName = "Department Breakdown")
-# addWorksheet(work_book, sheetName = "Reports Removed")
-# addWorksheet(work_book, sheetName = "Department Breakdown Guidelines")
-# addWorksheet(work_book, sheetName = "VP Roll Up")
-# addWorksheet(work_book, sheetName = "Corporate Service Roll Up")
-# addWorksheet(work_book, sheetName = "Appendix")
-#
-# writeData(work_book, "Department Breakdown", output_index)
-# writeData(work_book, "VP Roll Up", output_VP_roll)
-# writeData(work_book, "Corporate Service Roll Up", output_corpservice_roll)
-# writeData(work_book, "Appendix", output_appendix)
-#
-# file_name <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
-#        "Productivity/Analysis/MSHS Department Breakdown/",
-#        "Department Breakdown/xlsx/",
-#        paste(output_site, collapse = " & "),
-#        "_Department Performance Breakdown_", Date, ".xlsx")
-# saveWorkbook(work_book, file = file_name, overwrite = FALSE)
-
-write.table(output_index,
+#save main deliverable                      
+write.table(dept_breakdown,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Breakdown/",
                    paste(output_site, collapse = " & "),
-                   "_Department Performance Breakdown_", Date, ".csv"),
+                   "_Department Performance Breakdown_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save appendix
-write.table(output_appendix,
+write.table(appendix,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Appendix/",
                    paste(output_site, collapse = " & "),
-                   "_Breakdown Appendix_", Date, ".csv"),
+                   "_Breakdown Appendix_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save VP rollup
-write.table(output_VP_roll,
+write.table(roll$vp,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/VP Rollup/",
                    paste(output_site, collapse = " & "),
-                   "_VP Rollup_", Date, ".csv"),
+                   "_VP Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save Corporate rollup
-write.table(output_corpservice_roll,
+write.table(roll$corporate,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Corporate Rollup/",
                    paste(output_site, collapse = " & "),
-                   "_Corporate Rollup_", Date, ".csv"),
+                   "_Corporate Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
