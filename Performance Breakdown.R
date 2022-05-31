@@ -402,15 +402,14 @@ source(paste0(here(),"/Roll_Up.R"))
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
 
-#format date for save file
+# format date for save file
 Date <- gsub("/","-",distribution)
 
-#list of msmw cpt departments
-###check with Anjelica that this list is correct
+# list of msmw cpt departments
 msmw_cpt <- c("MSW_15", "MSM_42", "MSM_41")
 
-# joining and filtering variance elements to identify NA reports 
-na_reports <- variance[[previous_distribution_i]] %>% 
+# joining and filtering variance elements to identify NA reports
+na_report <- variance[[previous_distribution_i]] %>% 
   anti_join(
     variance[[previous_distribution_i]] %>%
       filter(Code %in% msmw_cpt) %>%
@@ -418,17 +417,27 @@ na_reports <- variance[[previous_distribution_i]] %>%
   left_join(variance[[distribution_i]]) %>%
   filter_all(any_vars(is.na(.)))
 
-### extra departments report
-extra_dep_report <- as.data.frame(setdiff(unique(reportBuilder$department_performance$Department.Reporting.Definition.ID), 
-                            unique(breakdown_performance$Code)))
+# extra departments report
+extra_dep_report <- anti_join(
+  select(reportBuilder$department_performance,
+         Department.Reporting.Definition.ID, 
+         Department.Reporting.Definition.Name), 
+  select(breakdown_performance, 
+         Code, 
+         Name), 
+  by = c("Department.Reporting.Definition.ID" = "Code"))
 
 # save NA report
-write.xlsx(na_reports, paste0(dir_breakdown, "Error Reports/NA Reports/",
-                              "NA_Reports_", Date, ".xlsx"))
+write.xlsx(na_report, 
+           paste0(dir_breakdown, "Error Reports/NA Reports/", "NA_Reports_", 
+                  Date, ".xlsx"),
+           overwrite = T)
 
-### save extra departments
-write.xlsx(extra_dep_report, paste0(dir_breakdown, "Error Reports/Extra Departments/",
-                              "Extra_Departments_Report_", Date, ".xlsx"), colNames = F)
+# save extra departments
+write.xlsx(extra_dep_report, 
+           paste0(dir_breakdown, "Error Reports/Extra Departments/",
+                  "Extra_Departments_Report_", Date, ".xlsx"),
+           overwrite = T)
 
 #removing unwanted columns
 breakdown_text <- breakdown_change[, -grep(colnames(breakdown_change),
