@@ -427,14 +427,8 @@ dept_breakdown <- reduce(list(
   variance[[previous_distribution_i]],
   variance[[distribution_i]],
   comparison_calculations
-), left_join)
-# do we want to remove "Target FTEs"?
-# %>% select(-ends_with("Target FTE"))
-
-#if not removing columns don't need new variables for roll ups
-# vp_roll_up <- roll$vp
-# 
-# corporate_roll_up <- roll$corporate
+), left_join) %>% 
+  select(-ends_with("Target FTE"))
 
 appendix <- reduce(
   list(
