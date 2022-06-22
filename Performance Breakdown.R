@@ -357,40 +357,40 @@ reportBuilder$watchlist <- reportBuilder$watchlist %>%
 calculation_function <- function(df){
   #Target FTE Calculations
   df$`Target FTE: Difference from Previous Distribution Period` <- 
-    pull(select(df, contains(paste(previous_distribution, "Target FTE"))) - 
-           select(df, contains(paste(distribution, "Target FTE"))))
+    pull(select(df, contains(paste(distribution, "Target FTE"))) - 
+           select(df, contains(paste(previous_distribution, "Target FTE"))))
   #FTE Calculations
   df$`FTE Difference: from Previous Distribution Period` <- 
-    pull(select(df, ends_with(paste(previous_distribution, "FTE"))) - 
-           select(df, ends_with(paste(distribution, "FTE"))))
+    pull(select(df, ends_with(paste(distribution, "FTE"))) - 
+           select(df, ends_with(paste(previous_distribution, "FTE"))))
   #FTE % Change Calculations
   df$`FTE % Change From Previous Distribution Period` <- 
-   (pull(select(df, ends_with(paste(previous_distribution, "FTE"))) /
-       select(df, ends_with(paste(distribution, "FTE")))) - 1) * 100
+   (pull(select(df, ends_with(paste(distribution, "FTE"))) /
+       select(df, ends_with(paste(previous_distribution, "FTE")))) - 1) * 100
   #FTE Variance Calculations
   df$`FTE Variance: Difference from Previous Distribution Period` <- 
-    pull(select(df, contains(paste(previous_distribution, "FTE Variance"))) - 
-           select(df, contains(paste(distribution, "FTE Variance"))))
+    pull(select(df, contains(paste(distribution, "FTE Variance"))) - 
+           select(df, contains(paste(previous_distribution, "FTE Variance"))))
   #Volume Calculations
   df$`Volume: Difference from Previous Distribution Period` <- 
-    pull(select(df, contains(paste(previous_distribution, "Volume"))) - 
-           select(df, contains(paste(distribution, "Volume"))))
+    pull(select(df, contains(paste(distribution, "Volume"))) - 
+           select(df, contains(paste(previous_distribution, "Volume"))))
   #Volume % Change Calculations
   df$`Volume % Change From Previous Distribution Period` <- 
-    (pull(select(df, ends_with(paste(previous_distribution, "Volume"))) /
-        select(df, ends_with(paste(distribution, "Volume")))) - 1) * 100
+    (pull(select(df, ends_with(paste(distribution, "Volume"))) /
+        select(df, ends_with(paste(previous_distribution, "Volume")))) - 1) * 100
   #Productivity Index Calculations
   df$`Productivity Index: Difference From Previous Distribution Period` <- 
-    pull(select(df, contains(paste(previous_distribution, "Productivity Index"))) - 
-           select(df, contains(paste(distribution, "Productivity Index"))))
+    pull(select(df, contains(paste(distribution, "Productivity Index"))) - 
+           select(df, contains(paste(previous_distribution, "Productivity Index"))))
   #Overtime % Calculations
   df$`Overtime %: Difference From Previous Distribution Period` <- 
-    pull(select(df, contains(paste(previous_distribution, "Overtime %"))) - 
-           select(df, contains(paste(distribution, "Overtime %"))))
+    pull(select(df, contains(paste(distribution, "Overtime %"))) - 
+           select(df, contains(paste(previous_distribution, "Overtime %"))))
   #Labor Expense Index Calculations
   df$`Labor Expense Index: Difference From Previous Distribution Period` <- 
-    pull(select(df, matches(paste(previous_distribution, "Labor Expense Index"))) - 
-           select(df, matches(paste(distribution, "Labor Expense Index"))))
+    pull(select(df, matches(paste(distribution, "Labor Expense Index"))) - 
+           select(df, matches(paste(previous_distribution, "Labor Expense Index"))))
   #Creating notes calculation
   df <- df %>% mutate(Notes = "")
   
@@ -398,10 +398,8 @@ calculation_function <- function(df){
 }
 #Applying calculations
 comparison_calculations <- calculation_function(
-  left_join(
-    variance[[previous_distribution_i]],
-    variance[[distribution_i]]
-    )
+  left_join(variance[[previous_distribution_i]],
+              variance[[distribution_i]])
   ) %>% select(Code, 
                `Key Volume`,
                contains("Previous"),
@@ -462,11 +460,19 @@ dept_breakdown <- reduce(list(
     left_join(select(definitions, c("Code", "Key Volume"))) %>%
     select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
     rename(`Effective Date` = EffDate),
-  variance[[previous_distribution_i]],
-  variance[[distribution_i]],
-  comparison_calculations
+  select(variance[[previous_distribution_i]], 
+         -contains(c("Paid Hours", "Target Labor Expense")), 
+         -ends_with("Labor Expense")),
+  select(variance[[distribution_i]],
+         -contains(c("Paid Hours", "Target Labor Expense")), 
+         -ends_with("Labor Expense")),
+  select(reportBuilder$watchlist, Department.Reporting.Definition.ID, 
+         Key.Volume, Watchlist, `Productivity Index`, `FTE Variance`) %>%
+    rename(`Key Volume` = Key.Volume,
+           Code = Department.Reporting.Definition.ID),
+  comparison_calculations 
 ), left_join) %>% 
-  select(-ends_with("Target FTE"))
+  select(-contains("Target FTE"))
 
 appendix <- reduce(
   list(
