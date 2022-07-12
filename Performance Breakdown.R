@@ -309,7 +309,7 @@ six_date_check <- sapply(watchlist, function(x) {
 watchlist <- lapply(seq_along(watchlist), function(x) {
   watchlist[[x]] <- watchlist[[x]] %>%
     mutate(!! paste0(names(watchlist)[x],"_average") := 
-             round(rowMeans(select(., where(is.double))), 2))
+             rowMeans(select(., where(is.double))))
   })
 names(watchlist) <- watchlist_metrics
 #restructure the watchlist report builder for determing watchlist criteria
@@ -348,7 +348,7 @@ reportBuilder$watchlist <- reportBuilder$watchlist %>%
   #logic for watchlist criteria
   mutate(Watchlist = case_when(
     is.na(fte_variance_average) | is.na(whpu_average) ~ "Missing Data",
-    (whpu_average > 110 | whpu_average < 95) & 
+    (productivity_average > 110 | productivity_average < 95) & 
       abs(fte_variance_average) > 1 ~ "Watchlist",
     TRUE ~ "Acceptable")) %>%
   mutate(`Productivity Index` = paste0(`Productivity Index`,"%"))
