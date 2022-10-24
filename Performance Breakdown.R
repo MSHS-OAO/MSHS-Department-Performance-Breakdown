@@ -21,11 +21,11 @@ output_site <-
   )
 
 #Read in Files-----------------------------------------------------------------
-dir_breakdown <- paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+dir_breakdown <- paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
 #Read in pay cycle file
-dates <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+dates <- read_xlsx(paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                           "Productivity/Universal Data/Mapping/",
                           "MSHS_Pay_Cycle.xlsx"))
 
@@ -84,7 +84,7 @@ dates <- dates %>%
   distinct()
 
 #Reporting definitions included in all hospital admin rollup reports
-definitions <- read_xlsx(paste0("J:/deans/Presidents/SixSigma/",
+definitions <- read_xlsx(paste0("/SharedDrive/deans/Presidents/SixSigma/",
                                 "MSHS Productivity/Productivity/",
                                 "Universal Data/Mapping/",
                                 "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
@@ -406,7 +406,7 @@ comparison_calculations <- calculation_function(
                Notes)
 
 #VP Roll-Up--------------------------------------------------------------------
-source(paste0(here(),"/Roll_Up.R"))
+source(paste0(here(),"/Roll_up.R"))
 
 #Formatting--------------------------------------------------------------------
 source(paste0(here(),"/Formatting.R"))
@@ -499,7 +499,7 @@ if(!"MSHS" %in% output_site){
 
 #save main deliverable                      
 write.table(dept_breakdown,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+            paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
@@ -508,7 +508,7 @@ write.table(dept_breakdown,
 
 #save appendix
 write.table(appendix,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+            paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
@@ -517,7 +517,7 @@ write.table(appendix,
 
 #save VP rollup
 write.table(roll$vp,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+            paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
@@ -526,7 +526,7 @@ write.table(roll$vp,
 
 #save Corporate rollup
 write.table(roll$corporate,
-            paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
+            paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/Test Files/",
                    paste(output_site, collapse = " & "),
