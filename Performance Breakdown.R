@@ -81,6 +81,7 @@ dates <- dates %>%
     substr(END.DATE, 6, 7), "/",
     substr(END.DATE, 9, 10), "/",
     substr(END.DATE, 1, 4))) %>%
+  filter(END.DATE != "01/14/2023") %>%
   distinct()
 
 #Reporting definitions included in all hospital admin rollup reports
