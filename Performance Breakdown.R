@@ -76,7 +76,7 @@ if (answer == "No") {
 dates <- dates %>%
   select(END.DATE) %>%
   mutate(END.DATE = as.Date(END.DATE)) %>%
-  filter(END.DATE >= as.Date("05/23/2020", format = "%m/%d/%Y")) %>%
+  filter(END.DATE >= as.Date("01/01/2022", format = "%m/%d/%Y")) %>%
   mutate(END.DATE = paste0(
     substr(END.DATE, 6, 7), "/",
     substr(END.DATE, 9, 10), "/",
@@ -100,35 +100,33 @@ colnames(definitions) <- c("Hospital", "VP", "Corporate Service Line", "Code",
 
 #labor standards for target information
 laborStandards <- read.csv(paste0(dir_breakdown,
-                                  "Labor Standards/", "LaborStandards.csv"),
-                           header = F,colClasses = c(rep("character", 7),
-                                                     rep("numeric", 7)))
-#change column headers for labor standards
-colnames(laborStandards) <- c("Partner", "Hospital", "Code", "EffDate", "VolID",
-                              "DepID", "Standard Type", "Target WHpU", "LEpU",
-                              "WHpU2", "LEpU2", "PHpU", "MinStaff", "FixStaff",
-                              "KeyVol")
+                                     "Labor Standards/2.0/", "LaborStandards2.0.csv"),
+                              header = T,colClasses = c(rep("character", 9),
+                                                        rep("numeric", 18)))
+
 #filter on key volume and turn effective date into date format
 laborStandards <- laborStandards %>%
-  select(Partner, Hospital, Code, EffDate, VolID, DepID, `Standard Type`,
-         `Target WHpU`, LEpU, WHpU2, LEpU2, PHpU, MinStaff, FixStaff, KeyVol) %>%
-  filter(KeyVol == "Y") %>%
-  mutate(EffDate = as.Date(EffDate, format = "%m%d%Y"))
+  select(Corporation.Code, Entity.Code, Department.Definition.Code, Effective.Start.Date, 
+         Workload.Volume.Code, Standard.Type, Key.Volume, Primary.Worked.Hours.per.Unit.Target,
+         Primary.Paid.Labor.Expense.per.Unit.Target, Secondary.Worked.Hours.per.Unit.Target,
+         Secondary.Paid.Labor.Expense.per.Unit.Target, Primary.Paid.Hours.per.Unit.Target,
+         Primary.WHpU.Min.Variable.Staffing.FTE, Primary.WHpU.Fixed.Staffing.or.FTE) %>%
+  filter(Key.Volume == "Y") %>%
+  mutate(Effective.Start.Date = as.Date(Effective.Start.Date, format = "%m/%d/%Y"))
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
-#read productivity performance report (Department Performance Breakdown)
+
 reportBuilder[[1]] <- read.csv(paste0(dir_breakdown,
-                                      "Report Builder/",
-                                      "Department Performance Breakdown/",
-                                      "Report Builder.csv"),
-                               as.is = T)
+                                         "Report Builder/2.0/",
+                                         "Department Performance Breakdown/",
+                                         "Report Builder 2.0.csv"),
+                                  as.is = T)
 #Read Watchlist report
 reportBuilder[[2]] <- read.csv(paste0(dir_breakdown,
-                                      "Report Builder/Watchlist/",
-                                      "Watchlist.csv"),
-                               as.is = T)
-
+                                         "Report Builder/2.0/Watchlist/",
+                                         "Watchlist 2.0.csv"),
+                                  as.is = T)
 
 #Format Files------------------------------------------------------------------
 #function to format numeric column by column name "col_name" to remove
@@ -150,7 +148,7 @@ format_list <- function(lt, x){
 }
 #using functions to format numeric columns in all data tables in the list
 reportBuilder <- sapply(1:length(reportBuilder),
-                        function(x) format_list(reportBuilder, x))
+                           function(x) format_list(reportBuilder, x))
 
 #apply names to each list element
 names(reportBuilder) <- c("department_performance", "watchlist")
@@ -163,15 +161,15 @@ previous_distribution_i <- which(dates == previous_distribution)
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
 breakdown_performance <-
-  left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
-  select(Hospital.x, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
-         `Standard Type`, `Target WHpU`) %>%
+  left_join(definitions, laborStandards, by = c("Code" = "Department.Definition.Code")) %>%
+  select(Hospital, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
+         Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
 
 #Reporting Period Performance--------------------------------------------------
   #join reporting period performance table
-  left_join(reportBuilder$department_performance,
-            by = c("Code" = "Department.Reporting.Definition.ID",
-                   "Key Volume" = "Key.Volume"))
+left_join(reportBuilder$department_performance,
+          by = c("Code" = "Department.CODE",
+                 "Key Volume" = "Corp.Time.Period.Time.Period.End.Date"))
 #clean up column headers based on data element and pp end date
 dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Target Labor Expense", "Labor Expense", "WHpU",
@@ -180,7 +178,7 @@ dataElements <- c("Target FTE", "FTE", "Volume", "Paid Hours",
                   "Other Worked Hours", "Education & Orientation %")
 #Assign column names based on dates and data elements
 #keep the column names of all columns that do not contain pay period date data - columns containg "..." in name
-col_names <- c(breakdown_performance %>% select(-contains("...")) %>% colnames(),
+col_names <- c(breakdown_performance %>% select(-contains("X")) %>% colnames(),
                #for each date up to current distribution create one column name for each data element
                sapply(dates$END.DATE[1:distribution_i],
                       function(x) paste(x, dataElements)))
@@ -200,9 +198,7 @@ if(length(col_names) != ncol(breakdown_performance)){
 
 #take necessary columns
 breakdown_performance <- breakdown_performance %>%
-  select(-c(Corporation.Code, Corporation.Name, Entity.Code, Entity,
-            Department.Reporting.Definition.Name, Mapped.Facility.Cost.Centers,
-            Entity.Time.Period.Desc))
+  select(-c(Facility.CODE, Facility.DESC, Department.DESC))
 
 #create list for reporting period variance calculations
 variance <- list()
@@ -227,10 +223,15 @@ variance <- lapply(variance, function(x){
            matches(paste(col_name_date,"Paid Hours")), #Column 6
            matches(paste(col_name_date,"Target Labor Expense")), #Column 7
            matches(paste(col_name_date,"Labor Expense"))) #Column 8
-  initial_metrics <- ncol(new_col)
+  initial_metrics <- ncol(new_col) 
   #Check if the correct number of columns are selected from above
   if(initial_metrics != 8){
     stop("Unexpected number of columns selected in variance variable")}
+  
+  # Convert selected columns to numeric
+  new_col <- new_col %>%
+    mutate(across(everything(), as.numeric))
+  
   new_col <- new_col %>%
     mutate(`FTE Variance` = new_col[,4] - new_col[,3],
            `Productivity Index` = round(new_col[,3]/new_col[,4] * 100, 2),
@@ -271,6 +272,20 @@ watchlist <- list()
 #4 metrics needed for watchlist criteria logic
 #order of metrics dependent on report builder structure
 watchlist_metrics <- c("worked_hours", "volume", "fte", "target_fte")
+
+# Function to add leading zeros to month and day if needed
+add_leading_zeros <- function(colname) {
+  # Use regular expressions to identify and modify the date format
+  colname <- gsub("X(\\d)\\.(\\d)\\.(\\d{4})", "X0\\1.0\\2.\\3", colname)
+  colname <- gsub("X(\\d{2})\\.(\\d)\\.(\\d{4})", "X\\1.0\\2.\\3", colname)
+  colname <- gsub("X(\\d)\\.(\\d{2})\\.(\\d{4})", "X0\\1.\\2.\\3", colname)
+  colname <- gsub("X(\\d{2})\\.(\\d{2})\\.(\\d{4})", "X\\1.\\2.\\3", colname)
+  return(colname)
+}
+
+# Apply the function to the column names
+colnames(reportBuilder$watchlist) <- sapply(colnames(reportBuilder$watchlist), add_leading_zeros)
+
 #create data frame where each row represents a watchlist_metric for 6 pay periods
 last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
                          function(x) {
@@ -287,8 +302,8 @@ last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
 #create the 4 watchlist elements for each needed metric
 watchlist <- apply(last_six_dates, 1, function(x) {
   reportBuilder$watchlist[,] %>% select(
-    Department.Reporting.Definition.ID,
-    Key.Volume,
+    Department.CODE,
+    Corp.Time.Period.Time.Period.End.Date,
     ends_with(x))
   })
 #Apply watchlist_metric name to each respective watchlist element
@@ -318,34 +333,34 @@ colnames(reportBuilder$watchlist)[(ncol(reportBuilder$watchlist) - 1):ncol(repor
   c("Productivity Index", "FTE Variance")
 reportBuilder$watchlist <- reportBuilder$watchlist %>%
   #select necessary columns from original report builder
-  select(Department.Reporting.Definition.ID,
-         Key.Volume,
+  select(Department.CODE,
+         Corp.Time.Period.Time.Period.End.Date,
          (ncol(reportBuilder$watchlist) - 1):ncol(reportBuilder$watchlist)) %>%
-  left_join(breakdown_performance %>% select(Code, `Key Volume`, `Target WHpU`),
-            by = c("Department.Reporting.Definition.ID" = "Code",
-                   "Key.Volume" = "Key Volume")) %>%
+  left_join(breakdown_performance %>% select(Code, `Key Volume`, Primary.Worked.Hours.per.Unit.Target),
+            by = c("Department.CODE" = "Code",
+                   "Corp.Time.Period.Time.Period.End.Date" = "Key Volume")) %>%
   #join with each watchlist element
   #worked hours
-  left_join(watchlist$worked_hours %>% select(Department.Reporting.Definition.ID,
-                                              Key.Volume,
+  left_join(watchlist$worked_hours %>% select(Department.CODE,
+                                              Corp.Time.Period.Time.Period.End.Date,
                                               contains("average"))) %>%
   #volume
-  left_join(watchlist$volume %>% select(Department.Reporting.Definition.ID,
-                                              Key.Volume,
+  left_join(watchlist$volume %>% select(Department.CODE,
+                                        Corp.Time.Period.Time.Period.End.Date,
                                         contains("average"))) %>%
   #fte
-  left_join(watchlist$fte %>% select(Department.Reporting.Definition.ID,
-                                        Key.Volume,
+  left_join(watchlist$fte %>% select(Department.CODE,
+                                     Corp.Time.Period.Time.Period.End.Date,
                                      contains("average"))) %>%
   #target fte
-  left_join(watchlist$target_fte %>% select(Department.Reporting.Definition.ID,
-                                     Key.Volume,
+  left_join(watchlist$target_fte %>% select(Department.CODE,
+                                            Corp.Time.Period.Time.Period.End.Date,
                                      contains("average"))) %>%
   #calculate 6 pp fte variance and WHpU averages
   mutate(fte_variance_average = target_fte_average - fte_average,
          whpu_average = worked_hours_average/volume_average) %>%
   #calculate 6 pp productivity index average
-  mutate(productivity_average = `Target WHpU`/whpu_average * 100) %>%
+  mutate(productivity_average = Primary.Worked.Hours.per.Unit.Target/whpu_average * 100) %>%
   #logic for watchlist criteria
   mutate(Watchlist = case_when(
     is.na(fte_variance_average) | is.na(whpu_average) ~ "Missing Data",
@@ -431,22 +446,22 @@ na_report <- variance[[previous_distribution_i]] %>%
 # extra departments report
 extra_dep_report <- anti_join(
   select(reportBuilder$department_performance,
-         Department.Reporting.Definition.ID, 
-         Department.Reporting.Definition.Name), 
+         Department.CODE, 
+         Department.DESC), 
   select(breakdown_performance, 
          Code, 
          Name), 
-  by = c("Department.Reporting.Definition.ID" = "Code"))
+  by = c("Department.CODE" = "Code"))
 
 # save NA report
 write.xlsx(na_report, 
-           paste0(dir_breakdown, "Error Reports/NA Reports/", "NA_Reports_", 
+           paste0(dir_breakdown, "Error Reports/2.0/NA Reports/", "NA_Reports_", 
                   distribution_date, ".xlsx"),
            overwrite = T)
 
 # save extra departments
 write.xlsx(extra_dep_report, 
-           paste0(dir_breakdown, "Error Reports/Extra Departments/",
+           paste0(dir_breakdown, "Error Reports/2.0/Extra Departments/",
                   "Extra_Departments_Report_", distribution_date, ".xlsx"),
            overwrite = T)
 
@@ -458,19 +473,19 @@ write.xlsx(extra_dep_report,
 dept_breakdown <- reduce(list(
   definitions,
   laborStandards %>%
-    left_join(select(definitions, c("Code", "Key Volume"))) %>%
-    select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
-    rename(`Effective Date` = EffDate),
+    left_join(definitions %>% select(`Code`, `Key Volume`), by = c("Department.Definition.Code" = "Code")) %>%
+    select(Department.Definition.Code, `Key Volume`, Effective.Start.Date, Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
+    rename(`Effective Date` = Effective.Start.Date),
   select(variance[[previous_distribution_i]], 
          -contains(c("Paid Hours", "Target Labor Expense")), 
          -ends_with("Labor Expense")),
   select(variance[[distribution_i]],
          -contains(c("Paid Hours", "Target Labor Expense")), 
          -ends_with("Labor Expense")),
-  select(reportBuilder$watchlist, Department.Reporting.Definition.ID, 
-         Key.Volume, Watchlist, `Productivity Index`, `FTE Variance`) %>%
-    rename(`Key Volume` = Key.Volume,
-           Code = Department.Reporting.Definition.ID),
+  select(reportBuilder$watchlist, Department.CODE, 
+         Corp.Time.Period.Time.Period.End.Date, Watchlist, `Productivity Index`, `FTE Variance`) %>%
+    rename(`Key Volume` = Corp.Time.Period.Time.Period.End.Date,
+           Code = Department.CODE),
   comparison_calculations 
 ), left_join) %>% 
   select(-contains("Target FTE"))
@@ -479,9 +494,9 @@ appendix <- reduce(
   list(
     definitions,
     laborStandards %>%
-      left_join(select(definitions, c("Code", "Key Volume"))) %>%
-      select(Code, `Key Volume`, EffDate, `Standard Type`, `Target WHpU`) %>%
-      rename(`Effective Date` = EffDate),
+      left_join(definitions %>% select(`Code`, `Key Volume`), by = c("Department.Definition.Code" = "Code")) %>%
+      select(Department.Definition.Code, `Key Volume`, Effective.Start.Date, Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
+      rename(`Effective Date` = Effective.Start.Date),
     reduce(variance, left_join)
   ), left_join) %>%
   select(-starts_with(format(non_dist_dates$END.DATE, "%m/%d/%Y")))
@@ -502,7 +517,7 @@ if(!"MSHS" %in% output_site){
 write.table(dept_breakdown,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Test Files/",
+                   "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
                    "_Department Performance Breakdown_", distribution_date, ".csv"),
             row.names = F, sep = ",")
@@ -511,7 +526,7 @@ write.table(dept_breakdown,
 write.table(appendix,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Test Files/",
+                   "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
                    "_Breakdown Appendix_", distribution_date, ".csv"),
             row.names = F, sep = ",")
@@ -520,7 +535,7 @@ write.table(appendix,
 write.table(roll$vp,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Test Files/",
+                   "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
                    "_VP Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
@@ -529,7 +544,7 @@ write.table(roll$vp,
 write.table(roll$corporate,
             paste0("J:/deans/Presidents/SixSigma/MSHS Productivity/",
                    "Productivity/Analysis/MSHS Department Breakdown/",
-                   "Department Breakdown/csv/Test Files/",
+                   "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
                    "_Corporate Rollup_", distribution_date, ".csv"),
             row.names = F, sep = ",")
