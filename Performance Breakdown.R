@@ -112,7 +112,8 @@ laborStandards <- laborStandards %>%
          Secondary.Paid.Labor.Expense.per.Unit.Target, Primary.Paid.Hours.per.Unit.Target,
          Primary.WHpU.Min.Variable.Staffing.FTE, Primary.WHpU.Fixed.Staffing.or.FTE) %>%
   filter(Key.Volume == "Y") %>%
-  mutate(Effective.Start.Date = as.Date(Effective.Start.Date, format = "%m/%d/%Y"))
+  mutate(Effective.Start.Date = as.Date(Effective.Start.Date, format = "%m/%d/%Y")) %>%
+  rename(Code = Department.Definition.Code)
 
 #list for baseline, productivity performance and productivity index reports
 reportBuilder <- list()
@@ -161,7 +162,7 @@ previous_distribution_i <- which(dates == previous_distribution)
 #Labor Standards---------------------------------------------------------------
 #join labor standards and baseline performance to definitions table
 breakdown_performance <-
-  left_join(definitions, laborStandards, by = c("Code" = "Department.Definition.Code")) %>%
+  left_join(definitions, laborStandards, by = c("Code" = "Code")) %>%
   select(Hospital, VP, `Corporate Service Line`, Code, Name, `Key Volume`,
          Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
 
@@ -473,8 +474,8 @@ write.xlsx(extra_dep_report,
 dept_breakdown <- reduce(list(
   definitions,
   laborStandards %>%
-    left_join(definitions %>% select(`Code`, `Key Volume`), by = c("Department.Definition.Code" = "Code")) %>%
-    select(Department.Definition.Code, `Key Volume`, Effective.Start.Date, Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
+    left_join(select(definitions, c("Code", "Key Volume"))) %>%
+    select(Code, `Key Volume`, Effective.Start.Date, Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
     rename(`Effective Date` = Effective.Start.Date),
   select(variance[[previous_distribution_i]], 
          -contains(c("Paid Hours", "Target Labor Expense")), 
@@ -494,8 +495,8 @@ appendix <- reduce(
   list(
     definitions,
     laborStandards %>%
-      left_join(definitions %>% select(`Code`, `Key Volume`), by = c("Department.Definition.Code" = "Code")) %>%
-      select(Department.Definition.Code, `Key Volume`, Effective.Start.Date, Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
+      left_join(select(definitions, c("Code", "Key Volume"))) %>%
+      select(Code, `Key Volume`, Effective.Start.Date, Standard.Type, Primary.Worked.Hours.per.Unit.Target) %>%
       rename(`Effective Date` = Effective.Start.Date),
     reduce(variance, left_join)
   ), left_join) %>%
