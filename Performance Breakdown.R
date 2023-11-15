@@ -287,8 +287,8 @@ add_leading_zeros <- function(colname) {
 # Apply the function to the column names
 colnames(reportBuilder$watchlist) <- sapply(colnames(reportBuilder$watchlist), add_leading_zeros)
 
-#create data frame where each row represents a watchlist_metric for 6 pay periods
-last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
+#create data frame where each row represents a watchlist_metric for 3 pay periods
+last_three_dates <- sapply(pull(dates[(distribution_i-2):distribution_i,]),
                          function(x) {
                            #format past 6 time periods to report builder format
                            x <- paste0(substr(x, 1, 2), ".",
@@ -301,7 +301,7 @@ last_six_dates <- sapply(pull(dates[(distribution_i-5):distribution_i,]),
                            })
                            })
 #create the 4 watchlist elements for each needed metric
-watchlist <- apply(last_six_dates, 1, function(x) {
+watchlist <- apply(last_three_dates, 1, function(x) {
   reportBuilder$watchlist[,] %>% select(
     Department.CODE,
     Corp.Time.Period.Time.Period.End.Date,
@@ -310,13 +310,13 @@ watchlist <- apply(last_six_dates, 1, function(x) {
 #Apply watchlist_metric name to each respective watchlist element
 names(watchlist) <- watchlist_metrics
 #check that each watchlist element has 6 numeric columns for each pp end date
-six_date_check <- sapply(watchlist, function(x) {
+three_date_check <- sapply(watchlist, function(x) {
   #get number of numeric columns in watchlist element
-  six_date_check <- ncol(x %>% select(., where(is.double)))
+  three_date_check <- ncol(x %>% select(., where(is.double)))
   #compare number of numeric columns in watchlist element to number of dates
-  if(six_date_check != ncol(last_six_dates)) {
+  if(three_date_check != ncol(last_three_dates)) {
     #if they are not equal then get set difference from expected dates and watchlist element dates
-    error <- setdiff(colnames(last_six_dates), 
+    error <- setdiff(colnames(last_three_dates), 
                      colnames(x %>% select(., where(is.double))))
     #stop script and report to user what end date is missing in report builder
     stop(paste(error, "not found in watchlist report builder"))
@@ -367,7 +367,7 @@ reportBuilder$watchlist <- reportBuilder$watchlist %>%
     is.na(fte_variance_average) | is.na(whpu_average) ~ "Missing Data",
     (productivity_average > 110 | productivity_average < 95) & 
       abs(fte_variance_average) > 1 ~ "Watchlist",
-    TRUE ~ "Acceptable")) %>%
+    TRUE ~ "Satisfactory")) %>%
   mutate(`Productivity Index` = paste0(`Productivity Index`,"%"))
 
 #Comparison Calculations-------------------------------------------------------
@@ -520,7 +520,7 @@ write.table(dept_breakdown,
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
-                   "_Department Performance Breakdown_", distribution_date, ".csv"),
+                   "_Department Performance Breakdown_V2_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save appendix
@@ -529,7 +529,7 @@ write.table(appendix,
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
-                   "_Breakdown Appendix_", distribution_date, ".csv"),
+                   "_Breakdown Appendix_V2_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save VP rollup
@@ -538,7 +538,7 @@ write.table(roll$vp,
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
-                   "_VP Rollup_", distribution_date, ".csv"),
+                   "_VP Rollup_V2_", distribution_date, ".csv"),
             row.names = F, sep = ",")
 
 #save Corporate rollup
@@ -547,5 +547,5 @@ write.table(roll$corporate,
                    "Productivity/Analysis/MSHS Department Breakdown/",
                    "Department Breakdown/csv/2.0/",
                    paste(output_site, collapse = " & "),
-                   "_Corporate Rollup_", distribution_date, ".csv"),
+                   "_Corporate Rollup_V2_", distribution_date, ".csv"),
             row.names = F, sep = ",")
