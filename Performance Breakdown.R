@@ -6,6 +6,9 @@ library(stringr)
 library(here)
 library(openxlsx)
 library(lubridate)
+library(rstudioapi)
+library(DBI)
+library(odbc)
 
 #Establish Constants-----------------------------------------------------------
 #Site(s) user would like to produce department breakdown for
@@ -24,10 +27,16 @@ output_site <-
 dir_breakdown <- paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
                         "Productivity/Analysis/MSHS Department Breakdown/")
 
-#Read in pay cycle file
-dates <- read_xlsx(paste0("/SharedDrive/deans/Presidents/SixSigma/MSHS Productivity/",
-                          "Productivity/Universal Data/Mapping/",
-                          "MSHS_Pay_Cycle.xlsx"))
+#Pay Cycle from DB
+oao_con <- dbConnect(odbc(), "OAO Cloud DB Production")
+dates <- tbl(oao_con, "LPM_MAPPING_PAYCYCLE") %>%
+  rename(
+    DATE = PAYCYCLE_DATE,
+    START.DATE = PP_START_DATE,
+    END.DATE = PP_END_DATE,
+    PREMIER.DISTRIBUTION = PREMIER_DISTRIBUTION
+  ) %>%
+  collect()
 
 #Table of distribution dates
 dist_dates <- dates %>%
@@ -71,7 +80,6 @@ if (answer == "No") {
   previous_distribution <- format(dist_dates$END.DATE[which(distribution == format(dist_dates$END.DATE, "%m/%d/%Y"))-1],"%m/%d/%Y")
 }
 
-
 #Table of end dates used for column header names
 dates <- dates %>%
   select(END.DATE) %>%
@@ -84,16 +92,20 @@ dates <- dates %>%
   filter(END.DATE != "01/14/2023") %>%
   distinct()
 
-#Reporting definitions included in all hospital admin rollup reports
-definitions <- read_xlsx(paste0("/SharedDrive//deans/Presidents/SixSigma/",
-                                "MSHS Productivity/Productivity/",
-                                "Universal Data/Mapping/",
-                                "MSHS_Reporting_Definition_Mapping.xlsx")) %>%
+#Reporting definitions from DB
+rep_def <- tbl(oao_con, "LPM_MAPPING_REPDEF") %>%
+  collect()
+key_vol <- tbl(oao_con, "LPM_MAPPING_KEY_VOLUME") %>%
+  collect()
+
+definitions <- rep_def %>%
+  inner_join(key_vol, by = "DEFINITION_CODE") %>%
+  select(SITE, VP, CORPORATE_SERVICE_LINE, DEFINITION_CODE, DEFINITION_NAME, KEY_VOLUME, CLOSED, DEPARTMENT_BREAKDOWN) %>%
   filter(CLOSED > as.POSIXct(distribution, format = "%m/%d/%Y") | is.na(CLOSED), 
-         DEPARTMENT.BREAKDOWN %in% c(TRUE,1)) %>%
-  select(SITE, VP, CORPORATE.SERVICE.LINE, DEFINITION.CODE, DEFINITION.NAME,
-         KEY.VOLUME) %>%
-  mutate(CORPORATE.SERVICE.LINE = replace_na(CORPORATE.SERVICE.LINE, "Not yet assigned")) %>%
+         DEPARTMENT_BREAKDOWN %in% c(TRUE,1)) %>%
+  select(SITE, VP, CORPORATE_SERVICE_LINE, DEFINITION_CODE, DEFINITION_NAME,
+         KEY_VOLUME) %>%
+  mutate(CORPORATE_SERVICE_LINE = replace_na(CORPORATE_SERVICE_LINE, "Not yet assigned")) %>%
   distinct()
 colnames(definitions) <- c("Hospital", "VP", "Corporate Service Line", "Code",
                            "Name", "Key Volume")
